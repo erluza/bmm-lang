@@ -171,6 +171,7 @@ if rc != 0 or "42" not in out:
 # Fuzz
 print("== Fuzz ==")
 fuzz_dir = os.path.join(ROOT, "tests", "fuzz")
+os.makedirs(fuzz_dir, exist_ok=True)
 random.seed(12345)
 crash = False
 for t in range(30):
