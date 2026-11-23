@@ -44,10 +44,16 @@ Deliberate breakages in a copy of the tree made `make test` fail:
 
 ## Not verified / Limitations
 
-- Sanitizers were run on the full battery except the complete fuzz corpus.
-- REPL state does not persist across separate inputs.
-- `.bmc` runs do not resolve `argv` by name.
-- Nested functions capturing outer locals are not supported (compile-time error).
-- `fmt` may reflow expressions.
+- Sanitizers were run on examples, conformance, errors, fmt, CLI and REPL,
+  but not on the entire randomized fuzz corpus.
+- In a `.bmc` run, `argv` is a global slot whose name is not serialized in the
+  bytecode file. `bmc_decode` initializes every global to int 0, so `argv`
+  holds int 0 rather than the argument array. Direct execution fills the slot
+  correctly; `bmm run` does not. This is covered by the CLI test in
+  `tests/run_tests.py`.
+- Nested functions capturing outer locals are not supported; the compiler
+  rejects them with a clear error.
+- `fmt` preserves parentheses, comments and string literals, but normalizes
+  whitespace and indentation.
 - The previous report incorrectly claimed "no leaks or undefined behavior";
   this was wrong and has been corrected.

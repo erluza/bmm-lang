@@ -3,6 +3,7 @@ set -e
 cd "$(dirname "$0")/.."
 
 FAIL=0
+mkdir -p /tmp/opencode
 ALLOWED="stdint.h stddef.h stdarg.h limits.h string.h"
 
 # 1. headers outside allowed list in non-pal files (gc.c may use stdlib.h)

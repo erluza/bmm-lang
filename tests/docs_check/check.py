@@ -2,6 +2,7 @@
 import glob, os, re, subprocess, sys, tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+os.makedirs('/tmp/opencode', exist_ok=True)
 BMM = os.path.join(ROOT, "bmm")
 failures = 0
 blocks = 0

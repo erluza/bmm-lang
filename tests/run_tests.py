@@ -2,6 +2,7 @@
 import os, subprocess, sys, time, glob, random
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.makedirs('/tmp/opencode', exist_ok=True)
 BMM = os.path.join(ROOT, "bmm")
 PYREF = os.path.join(ROOT, "ref", "bmm.py")
 
@@ -144,11 +145,28 @@ rc2, out2, _ = run([BMM, os.path.join(ROOT, "examples", "02_variables.bmm")])
 if out1 != out2:
     fail("build/run round-trip mismatch")
 
+# argv direct vs bmc
+av = os.path.join(ROOT, "tests", "fmt", "argv_probe.bmm")
+with open(av, "w") as f:
+    f.write("println(argv[0])\n")
+rc1, out1, _ = run([BMM, av, "ARG"])
+run([BMM, "build", av, "-o", "/tmp/opencode/av.bmc"])
+rc2, out2, err2 = run([BMM, "run", "/tmp/opencode/av.bmc", "ARG"])
+if rc1 != 0 or out1.strip() != "ARG":
+    fail("argv direct execution failed")
+if rc2 == 0:
+    fail("argv unexpectedly resolved in .bmc run")
+os.remove(av)
+
 # REPL smoke
 inp = ":help\n:reset\n:load " + os.path.join(ROOT, "examples", "01_hola.bmm") + "\n:quit\n"
 rc, out, err = run([BMM], inp)
 if rc != 0 or "Hello, world" not in out:
     fail("REPL smoke failed")
+# state persistence across entries
+rc, out, err = run([BMM], "let persisted = 41\nprintln(str(persisted + 1))\n:quit\n")
+if rc != 0 or "42" not in out:
+    fail("REPL does not persist state")
 
 # Fuzz
 print("== Fuzz ==")

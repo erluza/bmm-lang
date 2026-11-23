@@ -1,0 +1,6 @@
+bmm
+*.o
+*.bmc
+core
+core.*
+build/

@@ -11,3 +11,4 @@
 | Logic | 07_logic |
 | Modules | 10_use |
 | Comments | 13_comments |
+| int32 arithmetic (wraparound, INT_MIN) | 15_int32 |

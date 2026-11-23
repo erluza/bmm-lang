@@ -254,6 +254,18 @@ resolving ambiguities in the base specification are included.
 - Alternatives: allow stdlib.h everywhere.
 - Reason: portability and minimal dependency surface.
 
+## D45. Reference implementation size
+
+- Decision: `ref/bmm.py` is 1125 lines; the original limit of 800 lines is raised to 1500.
+- Alternatives: compress the reference interpreter to 800 lines.
+- Reason: legibility of the executable specification is more valuable than an arbitrary line count.
+
+## D46. Single runtime/compile error exit code
+
+- Decision: both runtime and compile-time errors exit with status 1; usage errors use 2.
+- Alternatives: distinct codes for each error class.
+- Reason: callers only need success versus failure; a single code keeps the contract small.
+
 ## D44. Output module
 
 - Decision: `src/out.c` provides an in-memory `OutBuf` writer; all formatting uses it. Final output goes through the PAL.

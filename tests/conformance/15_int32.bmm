@@ -1,0 +1,6 @@
+let m = -2147483647 - 1
+println(str(m / -1))
+println(str(m % -1))
+println(str(m * 2))
+println(str(-7 / 2))
+println(str(-7 % 2))
