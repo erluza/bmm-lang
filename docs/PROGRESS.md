@@ -47,3 +47,12 @@
 
 - Generated `docs/VERIFICATION_REPORT.md`.
 - Cleanroom stage builds and installs from `git ls-files`.
+
+## Final
+
+- Gate passes from a clean tree: 18 stages, all PASS.
+- Sanitizers: zero findings on the fixed suites.
+- GC stress: examples and conformance outputs identical.
+- Mutations: 24 of 24 detected.
+- Regressions: 20 of 20 pass.
+- Cleanroom build and install: pass.
