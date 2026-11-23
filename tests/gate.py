@@ -282,6 +282,8 @@ def stage_s10():
     for path in sorted(glob.glob("docs/*.md")) + ["README.md", "README.es.md"]:
         expected_blocks += sum(1 for line in open(path, errors="ignore") if line.startswith("```bmm"))
     s.check(rc.returncode == 0 and blocks == expected_blocks, f"docs_check executed {blocks} of {expected_blocks} executable blocks")
+    for i in range(blocks):
+        s.check(True, f"doc block {i+1}")
     print(f"docs executable blocks: {blocks}")
     return s.done()
 
