@@ -78,6 +78,7 @@ static int run_source(const char *src, const char *filename, int argc, char **ar
         /* cleanup compiler */
         for (size_t i = 0; i < comp.nglobals; i++) bmm_free(comp.global_names[i]);
         bmm_free(comp.global_names);
+        bmm_free(comp.global_defined_flags);
         for (size_t i = 0; i < comp.nfuncs; i++) {
             if (comp.funcs[i]) {
                 bmm_free(comp.funcs[i]->code);
@@ -129,6 +130,7 @@ static int run_source(const char *src, const char *filename, int argc, char **ar
     gc_shutdown();
     for (size_t i = 0; i < comp.nglobals; i++) bmm_free(comp.global_names[i]);
     bmm_free(comp.global_names);
+    bmm_free(comp.global_defined_flags);
     for (size_t i = 0; i < comp.nfuncs; i++) {
         if (comp.funcs[i]) {
             bmm_free(comp.funcs[i]->code);
@@ -179,20 +181,14 @@ static int run_file(const char *path, int argc, char **argv, int max_steps, int 
             ObjString *s = new_string(argv[i], strlen(argv[i]));
             array_push(aa, val_str((Obj*)s));
         }
+        if (vm->nglobals > 0) { vm->globals[0] = val_arr((Obj*)aa); vm->global_defined[0] = 1; }
         gc_set_vm(vm);
         int rc = vm_run(vm, vm->entry_func);
         if (vm->had_error) {
-            OutBuf o; out_init(&o);
-            out_puts(&o, "bmm: ");
-            out_puts(&o, path);
-            out_putc(&o, ':');
-            out_int(&o, vm->error_line);
-            out_putc(&o, ':');
-            out_int(&o, vm->error_col);
-            out_puts(&o, ": error: ");
-            out_puts(&o, vm->error_msg ? vm->error_msg : "runtime error");
-            out_putc(&o, '\n');
-            out_flush_stderr(&o);
+            print_error(vm->source_name ? vm->source_name : path, vm->source,
+                        vm->error_line ? vm->error_line : 1,
+                        vm->error_col ? vm->error_col : 1,
+                        vm->error_msg ? vm->error_msg : "runtime error");
         }
         int result = vm->had_error ? 1 : (rc != 0 ? 1 : 0);
         gc_collect(vm);
@@ -304,13 +300,18 @@ int main(int argc, char **argv) {
         lexer_free(&pp.lx);
         Compiler comp; memset(&comp, 0, sizeof(comp));
         if (compile_program(&comp, blk, srcpath) != 0) {
-            OutBuf o; out_init(&o);
-            out_puts(&o, "bmm: compile error\n");
-            out_flush_stderr(&o);
+            if (comp.error_msg) {
+                print_error(srcpath, src, comp.error_line ? comp.error_line : 1, comp.error_col ? comp.error_col : 1, comp.error_msg);
+            } else {
+                OutBuf o; out_init(&o);
+                out_puts(&o, "bmm: compile error\n");
+                out_flush_stderr(&o);
+            }
             ast_free(blk);
             bmm_free(src);
             return 1;
         }
+        comp.source = src;
         char *buf = NULL; size_t buflen = 0;
         if (bmc_encode(&comp, &buf, &buflen) != 0) {
             OutBuf o; out_init(&o);
@@ -333,6 +334,7 @@ int main(int argc, char **argv) {
         /* cleanup */
         for (size_t i = 0; i < comp.nglobals; i++) bmm_free(comp.global_names[i]);
         bmm_free(comp.global_names);
+        bmm_free(comp.global_defined_flags);
         for (size_t i = 0; i < comp.nfuncs; i++) {
             if (comp.funcs[i]) {
                 bmm_free(comp.funcs[i]->code);
@@ -416,9 +418,13 @@ int main(int argc, char **argv) {
             lexer_free(&pp.lx);
             Compiler comp; memset(&comp, 0, sizeof(comp));
             if (compile_program(&comp, blk, path) != 0) {
-                OutBuf o; out_init(&o);
-                out_puts(&o, "bmm: compile error\n");
-                out_flush_stderr(&o);
+                if (comp.error_msg) {
+                    print_error(path, src, comp.error_line ? comp.error_line : 1, comp.error_col ? comp.error_col : 1, comp.error_msg);
+                } else {
+                    OutBuf o; out_init(&o);
+                    out_puts(&o, "bmm: compile error\n");
+                    out_flush_stderr(&o);
+                }
                 ast_free(blk);
                 bmm_free(src);
                 return 1;
@@ -438,6 +444,7 @@ int main(int argc, char **argv) {
             /* cleanup */
             for (size_t i = 0; i < comp.nglobals; i++) bmm_free(comp.global_names[i]);
             bmm_free(comp.global_names);
+            bmm_free(comp.global_defined_flags);
             for (size_t i = 0; i < comp.nfuncs; i++) {
                 if (comp.funcs[i]) {
                     bmm_free(comp.funcs[i]->code);
@@ -511,6 +518,7 @@ int main(int argc, char **argv) {
         /* cleanup */
         for (size_t i = 0; i < comp.nglobals; i++) bmm_free(comp.global_names[i]);
         bmm_free(comp.global_names);
+        bmm_free(comp.global_defined_flags);
         for (size_t i = 0; i < comp.nfuncs; i++) {
             if (comp.funcs[i]) {
                 bmm_free(comp.funcs[i]->code);

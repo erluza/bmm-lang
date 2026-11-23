@@ -17,8 +17,7 @@ bmm: $(OBJS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 test:
-	tests/portability_check.sh
-	tests/run_tests.sh
+	sh tests/gate.sh
 
 install:
 	mkdir -p $(PREFIX)/bin

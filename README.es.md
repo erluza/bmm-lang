@@ -43,7 +43,7 @@ mark-and-sweep. La especificación del lenguaje está congelada en la versión
 
 ## El lenguaje en breve
 
-```
+```bmm
 fn fib(n)
   if n < 2
     ret n
@@ -71,6 +71,7 @@ Requisitos: un compilador C99 y `make`. Ninguna otra dependencia y no se
 requieren privilegios de administrador.
 
 ```sh
+sh
 make
 make test
 make install PREFIX="$HOME/.local"
@@ -93,7 +94,7 @@ bmm run hello.bmc                  # ejecutar bytecode compilado
 
 `hello.bmm`:
 
-```
+```bmm
 println("Hello, world")
 ```
 

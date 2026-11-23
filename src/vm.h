@@ -24,6 +24,7 @@ struct BmmVM {
     Value *globals;
     char *global_defined;
     char **global_names;
+    int owns_global_names;
     size_t nglobals;
     Func **funcs;
     size_t nfuncs;
@@ -41,6 +42,8 @@ struct BmmVM {
     /* argv array object */
     ObjArray *argv_arr;
     int entry_func;
+    char *source; /* optional source text for diagnostics */
+    char *source_name;
 };
 
 struct Func {

@@ -34,7 +34,9 @@ Value val_arr(Obj *o);
 Value val_null(void);
 
 int val_truthy(Value v);
-char *val_to_cstr_repr(Value v); /* caller frees? returns malloc'd */
+/* Returns a heap buffer owned by the caller. The caller must release it with
+ * bmm_free(). */
+char *val_to_cstr_repr(Value v);
 
 /* Obj types */
 typedef enum { OBJ_STRING, OBJ_ARRAY } ObjType;

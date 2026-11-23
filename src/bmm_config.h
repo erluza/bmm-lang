@@ -27,4 +27,8 @@
 #define BMM_MAX_STEPS_DEFAULT 0 /* 0 = unlimited */
 #endif
 
+#ifndef BMM_GC_STRESS
+#define BMM_GC_STRESS 0
+#endif
+
 #endif

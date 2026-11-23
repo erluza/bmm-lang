@@ -10,6 +10,7 @@ typedef struct {
     size_t func_cap;
     /* globals */
     char **global_names;
+    char *global_defined_flags;
     size_t nglobals;
     size_t global_cap;
     /* constants */
@@ -26,6 +27,10 @@ typedef struct {
     Ast **extra_asts;
     size_t nextra;
     size_t extra_cap;
+    const char *source; /* optional source text for .bmc diagnostics */
+    const char *filename;
+    char *active_uses[64];
+    int nactive;
 } Compiler;
 
 int compile_program(Compiler *c, Ast *program, const char *filename);

@@ -1,6 +1,8 @@
 # Bytecode
 
-The VM is stack-based. Each instruction may take operands as shown.
+The VM is stack-based. Each instruction may take operands as shown. Jump
+offsets are signed 32-bit values, so a block body is not limited to the
+`int16` range.
 
 | Opcode | Operands | Effect |
 |--------|----------|--------|
@@ -18,8 +20,8 @@ The VM is stack-based. Each instruction may take operands as shown.
 | EQ/NE | | Equality. |
 | LT/GT/LE/GE | | Ordered comparison. |
 | NOT | | Logical not. |
-| JUMP | i16 | Unconditional jump. |
-| JUMP_IF_FALSE | i16 | Pop; jump if false. |
+| JUMP | i32 | Unconditional jump. |
+| JUMP_IF_FALSE | i32 | Pop; jump if false. |
 | CALL | u16 u8 | Call function with argc. |
 | RET | | Return. |
 | RET_VAL | | Pop and return value. |
@@ -28,3 +30,6 @@ The VM is stack-based. Each instruction may take operands as shown.
 | INDEX_SET | | Pop value, index, array; assign. |
 | CALL_BUILTIN | u8 u8 | Call builtin. |
 | HALT | | Stop execution. |
+
+Global slot 0 is reserved for `argv`. The compiler assigns it before any
+other global.

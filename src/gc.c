@@ -53,12 +53,16 @@ Obj *gc_alloc_obj(int type, size_t size) {
     /* protect from collection */
     gc_pending = o;
     /* threshold collection */
+#if BMM_GC_STRESS
+    if (gc_vm) gc_collect(gc_vm);
+#else
     static int count = 0;
     count++;
     if (count >= BMM_GC_THRESHOLD) {
         count = 0;
         if (gc_vm) gc_collect(gc_vm);
     }
+#endif
     gc_pending = NULL;
     return o;
 }

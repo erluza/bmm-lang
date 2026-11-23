@@ -701,6 +701,8 @@ class Interp:
         if kind == "call":
             _, name, args, line, col = e
             l = (self.filename, line, col)
+            if name == "argv":
+                raise BmmError("'argv' is not a function", l)
             # builtins
             if name == "print":
                 if len(args) != 1:

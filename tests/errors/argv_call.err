@@ -1,0 +1,3 @@
+bmm: tests/errors/argv_call.bmm:1:17: error: 'argv' is not a function
+  println(str(len(argv())))
+                  ^

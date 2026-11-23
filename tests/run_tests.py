@@ -154,8 +154,8 @@ run([BMM, "build", av, "-o", "/tmp/opencode/av.bmc"])
 rc2, out2, err2 = run([BMM, "run", "/tmp/opencode/av.bmc", "ARG"])
 if rc1 != 0 or out1.strip() != "ARG":
     fail("argv direct execution failed")
-if rc2 == 0:
-    fail("argv unexpectedly resolved in .bmc run")
+if rc2 != rc1 or out2 != out1 or err2 != "":
+    fail("argv differs between direct and .bmc execution")
 os.remove(av)
 
 # REPL smoke

@@ -500,6 +500,40 @@ static Ast *parse_expr(Parser *p) { return parse_or(p); }
 /* fix forward decls */
 /* parse_primary defined above uses parse_expr, ok */
 
+#define BMM_MAX_NESTING 1000
+
+static int check_nesting(Parser *p) {
+    int paren = 0, block = 0;
+    for (int i = 0; i < p->lx.ntoks; i++) {
+        Token *t = &p->lx.toks[i];
+        if (t->kind == TK_LPAREN || t->kind == TK_LBRACKET) {
+            if (++paren > BMM_MAX_NESTING) {
+                p->had_error = 1;
+                p->error_msg = "nesting too deep";
+                p->error_line = t->line;
+                p->error_col = t->col;
+                return -1;
+            }
+        } else if (t->kind == TK_RPAREN || t->kind == TK_RBRACKET) {
+            if (paren > 0) paren--;
+        } else if (t->kind == TK_KW && t->text) {
+            if (strcmp(t->text, "fn") == 0 || strcmp(t->text, "if") == 0 ||
+                strcmp(t->text, "loop") == 0) {
+                if (++block > BMM_MAX_NESTING) {
+                    p->had_error = 1;
+                    p->error_msg = "nesting too deep";
+                    p->error_line = t->line;
+                    p->error_col = t->col;
+                    return -1;
+                }
+            } else if (strcmp(t->text, "end") == 0) {
+                if (block > 0) block--;
+            }
+        }
+    }
+    return 0;
+}
+
 int parse_source(const char *src, const char *filename, Ast **out_block, Parser *p) {
     memset(p, 0, sizeof(*p));
     p->filename = filename;
@@ -511,6 +545,7 @@ int parse_source(const char *src, const char *filename, Ast **out_block, Parser 
         p->error_col = 1;
         return -1;
     }
+    if (check_nesting(p) != 0) return -1;
     Ast *blk = parse_program(p);
     if (p->had_error) {
         return -1;

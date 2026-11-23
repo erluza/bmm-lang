@@ -1,0 +1,5 @@
+Parser nesting is limited to 1000 levels (S09).
+Nested functions that capture outer locals are rejected at compile time (tests/errors/nested_fn.bmm).
+Bytecode files are version 2; version 1 files are rejected (S08).
+argv is a value, not a function; argv() is a compile-time error (tests/errors/argv_call.bmm).
+Sanitizers cover the fixed suites, not the randomized fuzz corpus (S12).

@@ -42,7 +42,7 @@ The language specification is frozen at version 1.0.0.
 
 ## Language at a glance
 
-```
+```bmm
 fn fib(n)
   if n < 2
     ret n
@@ -70,6 +70,7 @@ Requirements: a C99 compiler and `make`. No other dependencies and no
 administrator privileges.
 
 ```sh
+sh
 make
 make test
 make install PREFIX="$HOME/.local"
@@ -92,7 +93,7 @@ bmm run hello.bmc                  # run compiled bytecode
 
 `hello.bmm`:
 
-```
+```bmm
 println("Hello, world")
 ```
 

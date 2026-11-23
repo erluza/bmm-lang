@@ -23,7 +23,13 @@ void vm_free(BmmVM *vm) {
     bmm_free(vm->frames);
     bmm_free(vm->globals);
     bmm_free(vm->global_defined);
+    if (vm->owns_global_names) {
+        for (size_t i = 0; i < vm->nglobals; i++) bmm_free(vm->global_names ? vm->global_names[i] : NULL);
+        bmm_free(vm->global_names);
+    }
     bmm_free(vm->error_msg);
+    bmm_free(vm->source);
+    bmm_free(vm->source_name);
     /* funcs owned by compiler; not freed here */
     bmm_free(vm);
 }
@@ -204,8 +210,8 @@ int vm_run(BmmVM *vm, int entry_func) {
             }
             case OP_CONCAT: {
                 if (vm->sp < 2) { vm_error(vm, "stack underflow", line, col); break; }
-                Value rv = vm_pop(vm);
-                Value lv = vm_pop(vm);
+                Value lv = vm->stack[vm->sp-2];
+                Value rv = vm->stack[vm->sp-1];
                 if (lv.type != VAL_STR || rv.type != VAL_STR) { vm_error(vm, "expected str", line, col); break; }
                 ObjString *ls = (ObjString*)lv.as.o;
                 ObjString *rs = (ObjString*)rv.as.o;
@@ -213,6 +219,7 @@ int vm_run(BmmVM *vm, int entry_func) {
                 memcpy(ns->chars, ls->chars, ls->len);
                 memcpy(ns->chars + ls->len, rs->chars, rs->len);
                 ns->chars[ns->len] = '\0';
+                vm->sp -= 2;
                 vm_push(vm, val_str((Obj*)ns));
                 break;
             }
@@ -339,19 +346,20 @@ int vm_run(BmmVM *vm, int entry_func) {
             }
             case OP_INDEX_GET: {
                 if (vm->sp < 2) { vm_error(vm, "stack underflow", line, col); break; }
-                Value idxv = vm_pop(vm);
-                Value objv = vm_pop(vm);
+                Value idxv = vm->stack[vm->sp-1];
+                Value objv = vm->stack[vm->sp-2];
                 if (idxv.type != VAL_INT) { vm_error(vm, "index must be int", line, col); break; }
                 int idx = idxv.as.i;
                 if (objv.type == VAL_STR) {
                     ObjString *s = (ObjString*)objv.as.o;
                     if (idx < 0 || idx >= (int)s->len) { vm_error(vm, "index out of range", line, col); break; }
-                    /* return one-byte string */
                     ObjString *ns = new_string(s->chars + idx, 1);
+                    vm->sp -= 2;
                     vm_push(vm, val_str((Obj*)ns));
                 } else if (objv.type == VAL_ARR) {
                     ObjArray *a = (ObjArray*)objv.as.o;
                     if (idx < 0 || idx >= (int)a->len) { vm_error(vm, "index out of range", line, col); break; }
+                    vm->sp -= 2;
                     vm_push(vm, a->items[idx]);
                 } else {
                     vm_error(vm, "indexing requires str or arr", line, col);
@@ -509,15 +517,16 @@ int vm_run(BmmVM *vm, int entry_func) {
                     vm_push(vm, val_int(cp));
                 } else if (bi == BI_SUB) {
                     if (argc != 3) { vm_error(vm, "sub expects 3 arguments", line, col); break; }
-                    Value ln = vm_pop(vm);
-                    Value st = vm_pop(vm);
-                    Value x = vm_pop(vm);
+                    Value ln = vm->stack[vm->sp-1];
+                    Value st = vm->stack[vm->sp-2];
+                    Value x = vm->stack[vm->sp-3];
                     if (st.type != VAL_INT || ln.type != VAL_INT) { vm_error(vm, "sub expects int indices", line, col); break; }
                     int start = st.as.i, length = ln.as.i;
                     if (x.type == VAL_STR) {
                         ObjString *s = (ObjString*)x.as.o;
                         if (start < 0 || length < 0 || start + length > (int)s->len) { vm_error(vm, "index out of range", line, col); break; }
                         ObjString *ns = new_string(s->chars + start, length);
+                        vm->sp -= 3;
                         vm_push(vm, val_str((Obj*)ns));
                     } else if (x.type == VAL_ARR) {
                         ObjArray *a = (ObjArray*)x.as.o;
@@ -526,6 +535,7 @@ int vm_run(BmmVM *vm, int entry_func) {
                         while (na->cap < (size_t)length) { na->cap*=2; na->items=bmm_realloc(na->items, na->cap*sizeof(Value)); }
                         for (int i = 0; i < length; i++) na->items[i] = a->items[start+i];
                         na->len = length;
+                        vm->sp -= 3;
                         vm_push(vm, val_arr((Obj*)na));
                     } else {
                         vm_error(vm, "sub expects str or arr", line, col);

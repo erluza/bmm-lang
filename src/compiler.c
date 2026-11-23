@@ -86,8 +86,13 @@ static int find_global(Compiler *c, const char *name){
 static int add_global(Compiler *c, const char *name){
     int idx = find_global(c, name);
     if (idx >= 0) return idx;
-    if (c->nglobals >= c->global_cap){ c->global_cap = c->global_cap?c->global_cap*2:16; c->global_names = bmm_realloc(c->global_names, c->global_cap*sizeof(char*)); }
+    if (c->nglobals >= c->global_cap){
+        c->global_cap = c->global_cap?c->global_cap*2:16;
+        c->global_names = bmm_realloc(c->global_names, c->global_cap*sizeof(char*));
+        c->global_defined_flags = bmm_realloc(c->global_defined_flags, c->global_cap*sizeof(char));
+    }
     c->global_names[c->nglobals] = xstrdup(name);
+    c->global_defined_flags[c->nglobals] = 0;
     return (int)c->nglobals++;
 }
 
@@ -172,6 +177,9 @@ static void collect_functions(Compiler *c, Ast *node, const char *basedir) {
         return;
     }
     if (node->kind == AST_USE) {
+        static int use_depth = 0;
+        if (use_depth > 32) return;
+        use_depth++;
         char pathbuf[4096];
         /* build pathbuf = basedir + "/" + path */
         size_t bl = strlen(basedir);
@@ -180,6 +188,7 @@ static void collect_functions(Compiler *c, Ast *node, const char *basedir) {
         pathbuf[bl] = '/';
         strcpy(pathbuf + bl + 1, node->as.use.path);
         collect_from_file(c, pathbuf);
+        use_depth--;
         return;
     }
 }
@@ -288,8 +297,23 @@ static void compile_expr(Ctx *ctx, Ast *e) {
                 cb_write(ctx->code, OP_CALL_BUILTIN); cb_write(ctx->code, (unsigned char)bi); cb_write(ctx->code, (unsigned char)e->as.call.nargs);
             } else {
                 int fi = find_func(c, e->as.call.name);
+                if (fi < 0) {
+                    c->had_error = 1;
+                    size_t nl = strlen(e->as.call.name);
+                    char *msg = bmm_alloc(nl + 32);
+                    const char *pre = "'";
+                    size_t mi = 0;
+                    while (pre[mi]) { msg[mi] = pre[mi]; mi++; }
+                    for (size_t q = 0; q < nl; q++) msg[mi++] = e->as.call.name[q];
+                    const char *post = "' is not a function";
+                    for (size_t q = 0; post[q]; q++) msg[mi++] = post[q];
+                    msg[mi] = '\0';
+                    c->error_msg = msg;
+                    c->error_line = e->line;
+                    c->error_col = e->col;
+                    return;
+                }
                 for (int i = 0; i < e->as.call.nargs; i++) compile_expr(ctx, e->as.call.args[i]);
-                if (fi < 0) fi = 0;
                 cb_write(ctx->code, OP_CALL); cb_u16(ctx->code, fi); cb_write(ctx->code, (unsigned char)e->as.call.nargs);
             }
             break;
@@ -321,6 +345,7 @@ static void compile_stmt(Ctx *ctx, Ast *s) {
             compile_expr(ctx, s->as.let.init);
             if (ctx->top_level) {
                 int gi = add_global(c, s->as.let.name);
+                c->global_defined_flags[gi] = 1;
                 cb_write(ctx->code, OP_DECLARE_GLOBAL); cb_u16(ctx->code, gi);
             } else {
                 int slot = ctx->nlocals++;
@@ -408,7 +433,13 @@ static void compile_stmt(Ctx *ctx, Ast *s) {
             break;
         }
         case AST_BREAK: {
-            if (ctx->nloops <= 0) break;
+            if (ctx->nloops <= 0) {
+                ctx->comp->had_error = 1;
+                ctx->comp->error_msg = xstrdup("break outside loop");
+                ctx->comp->error_line = s->line;
+                ctx->comp->error_col = s->col;
+                break;
+            }
             LoopCtx *lc = &ctx->loops[ctx->nloops-1];
             size_t pos = cb_pos(ctx->code);
             cb_write(ctx->code, OP_JUMP); cb_i32(ctx->code, 0);
@@ -418,6 +449,13 @@ static void compile_stmt(Ctx *ctx, Ast *s) {
             break;
         }
         case AST_RET: {
+            if (ctx->top_level) {
+                ctx->comp->had_error = 1;
+                ctx->comp->error_msg = xstrdup("ret outside function");
+                ctx->comp->error_line = s->line;
+                ctx->comp->error_col = s->col;
+                break;
+            }
             if (s->as.ret.value) {
                 compile_expr(ctx, s->as.ret.value);
                 cb_write(ctx->code, OP_RET_VAL);
@@ -437,11 +475,28 @@ static void compile_stmt(Ctx *ctx, Ast *s) {
             } else {
                 pathbuf[0] = '\0';
             }
+            for (int u = 0; u < ctx->comp->nactive; u++) {
+                if (strcmp(ctx->comp->active_uses[u], pathbuf) == 0) {
+                    ctx->comp->had_error = 1;
+                    ctx->comp->error_msg = xstrdup("circular use");
+                    ctx->comp->error_line = s->line;
+                    ctx->comp->error_col = s->col;
+                    break;
+                }
+            }
+            if (ctx->comp->had_error) break;
             char *buf = NULL; size_t len = 0;
             if (pal_read_file(pathbuf, &buf, &len) != 0) {
-                if (pal_read_file(s->as.use.path, &buf, &len) != 0) break;
+                if (pal_read_file(s->as.use.path, &buf, &len) != 0) {
+                    ctx->comp->had_error = 1;
+                    ctx->comp->error_msg = xstrdup("cannot open file");
+                    ctx->comp->error_line = s->line;
+                    ctx->comp->error_col = s->col;
+                    break;
+                }
                 strcpy(pathbuf, s->as.use.path);
             }
+            if (ctx->comp->nactive < 64) ctx->comp->active_uses[ctx->comp->nactive++] = xstrdup(pathbuf);
             Ast *blk = NULL;
             Parser pp; memset(&pp,0,sizeof(pp));
             if (parse_source(buf, pathbuf, &blk, &pp) != 0) { lexer_free(&pp.lx); bmm_free(buf); break; }
@@ -455,6 +510,11 @@ static void compile_stmt(Ctx *ctx, Ast *s) {
                 for (int i = 0; i < blk->as.block.nstmts; i++) compile_stmt(ctx, blk->as.block.stmts[i]);
                 ctx->basedir = oldbd;
                 ctx->top_level = oldtop;
+            }
+            if (ctx->comp->nactive > 0) {
+                ctx->comp->nactive--;
+                bmm_free(ctx->comp->active_uses[ctx->comp->nactive]);
+                ctx->comp->active_uses[ctx->comp->nactive] = NULL;
             }
             ast_free(blk);
             bmm_free(buf);
@@ -537,10 +597,14 @@ static void compile_one_function(Compiler *c, Func *f, const char *basedir) {
 
 int compile_program(Compiler *c, Ast *program, const char *filename) {
     memset(c, 0, sizeof(*c));
+    c->filename = filename;
     char dirbuf[4096]; strcpy(dirbuf, filename ? filename : ".");
     char *slash = find_last_slash(dirbuf);
     if (slash) *slash = '\0'; else strcpy(dirbuf, ".");
     const char *basedir = dirbuf;
+    /* reserve global slot 0 for argv so .bmc files can restore it without names */
+    int argv_idx = add_global(c, "argv");
+    c->global_defined_flags[argv_idx] = 1;
     collect_functions(c, program, basedir);
     /* compile user functions */
     for (size_t i = 0; i < c->nfuncs; i++) {
@@ -563,8 +627,6 @@ int compile_program(Compiler *c, Ast *program, const char *filename) {
     ctx.basedir = basedir;
     ctx.top_level = 1;
     scope_push(&ctx);
-    /* add argv global */
-    add_global(c, "argv");
     if (program && program->kind == AST_BLOCK) {
         for (int i = 0; i < program->as.block.nstmts; i++) compile_stmt(&ctx, program->as.block.stmts[i]);
     } else if (program) {

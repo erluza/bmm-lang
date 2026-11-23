@@ -18,5 +18,6 @@
 | argv | argv | Array of program arguments (a value, not a call). |
 | clock | clock() | Milliseconds since interpreter start. |
 
-`argv` is a value rather than a call. `print` and `println` accept one
-argument; convert with `str` or concatenate with `..`.
+`argv` is a value rather than a call. Use `len(argv)` and `argv[i]`;
+`argv()` is a compile-time error. `print` and `println` accept one argument;
+convert with `str` or concatenate with `..`.

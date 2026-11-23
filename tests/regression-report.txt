@@ -1,0 +1,20 @@
+R01 UAF: PASS
+R02 INT_MIN division: PASS
+R03 fmt parentheses: PASS
+R04 fmt quotes: PASS
+R05 fmt comments: PASS
+R06 fmt does not write: PASS
+R07 REPL state: PASS
+R08 REPL error format: PASS
+R09 REPL prompts on pipe: PASS
+R10 bmc argv: PASS
+R11 argv() error: PASS
+R12 bmc error location: PASS
+R13 large jump: PASS
+R14 nested function: PASS
+R15 no %ld in fmt: PASS
+R16 no duplicate string.h: PASS
+R17 memory ownership documented: PASS
+R18 generated report: FAIL
+R19 reference size decision: PASS
+R20 conformance index: PASS

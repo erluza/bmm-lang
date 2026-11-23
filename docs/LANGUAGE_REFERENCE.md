@@ -114,7 +114,8 @@ Precedence, highest to lowest:
 | argv | argv | Array of program arguments. |
 | clock | clock() | Milliseconds since start. |
 
-`argv` is a value, not a call.
+`argv` is a value, not a call. Use `len(argv)` and `argv[i]`. Writing
+`argv()` is a compile-time error: `'argv' is not a function`.
 
 ## 8. Modules
 
