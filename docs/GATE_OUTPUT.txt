@@ -15,9 +15,9 @@ STAGE S12 sanitizers: PASS (46 checks)
 STAGE S13 gcstress: PASS (31 checks)
 STAGE S14 mutation: PASS (25 checks)
 STAGE S15 regression: PASS (21 checks)
-STAGE S16 report: FAIL (2 checks)
+STAGE S16 report: PASS (2 checks)
 STAGE S17 bench: PASS (5 checks)
 STAGE S18 cleanroom: PASS (18 checks)
 
 Failures:
-S16 report: generated report differs from versioned file
+none
