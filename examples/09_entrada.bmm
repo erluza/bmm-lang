@@ -1,0 +1,4 @@
+-- reads a number line and doubles it
+let line = input()
+let n = int(line)
+println(str(n * 2))

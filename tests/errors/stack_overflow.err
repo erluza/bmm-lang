@@ -1,0 +1,3 @@
+bmm: tests/errors/stack_overflow.bmm:2:7: error: stack overflow
+    ret rec(n + 1)
+        ^

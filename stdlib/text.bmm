@@ -1,0 +1,9 @@
+fn repeat(s, n)
+  let r = ""
+  let i = 0
+  loop i < n
+    r = r .. s
+    i = i + 1
+  end
+  ret r
+end

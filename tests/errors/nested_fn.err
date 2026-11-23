@@ -1,0 +1,3 @@
+bmm: tests/errors/nested_fn.bmm:2:3: error: nested functions are not supported
+    fn inner()
+    ^

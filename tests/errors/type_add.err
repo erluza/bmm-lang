@@ -1,0 +1,3 @@
+bmm: tests/errors/type_add.bmm:1:17: error: expected int
+  println(str("a" + 1))
+                  ^

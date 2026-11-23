@@ -1,0 +1,4 @@
+fn f(a, b)
+  ret a
+end
+println(str(f(1)))

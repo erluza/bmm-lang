@@ -1,0 +1,9 @@
+let a = [1, 2, 3]
+println(str(a[0]))
+a[1] = 5
+println(str(a[0]))
+println(str(a[1]))
+println(str(a[2]))
+push(a, 9)
+println(str(pop(a)))
+println(str(len(a)))

@@ -1,0 +1,3 @@
+bmm: tests/errors/arity.bmm:4:13: error: arity mismatch for 'f'
+  println(str(f(1)))
+              ^

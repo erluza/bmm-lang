@@ -1,0 +1,2 @@
+use "subdir/lib.bmm"
+println(str(double(21)))

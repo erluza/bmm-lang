@@ -1,0 +1,3 @@
+bmm: tests/errors/undef.bmm:1:13: error: undefined variable 'x'
+  println(str(x))
+              ^

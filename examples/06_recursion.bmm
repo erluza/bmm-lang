@@ -1,0 +1,12 @@
+fn fib(n)
+  if n < 2
+    ret n
+  end
+  ret fib(n - 1) + fib(n - 2)
+end
+
+let i = 0
+loop i <= 10
+  println(str(fib(i)))
+  i = i + 1
+end

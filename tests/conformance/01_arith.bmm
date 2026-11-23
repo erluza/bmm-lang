@@ -1,0 +1,5 @@
+println(str(2 + 3 * 4))
+println(str((2 + 3) * 4))
+println(str(10 / 3))
+println(str(10 % 3))
+println(str(-5 + 2))

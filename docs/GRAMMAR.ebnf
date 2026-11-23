@@ -1,0 +1,46 @@
+(* B-- grammar, EBNF. Newline is a statement separator. *)
+
+program        = { statement } ;
+
+statement      = let_stmt
+               | assign_stmt
+               | fn_stmt
+               | if_stmt
+               | loop_stmt
+               | break_stmt
+               | ret_stmt
+               | use_stmt
+               | expr_stmt
+               | empty ;
+
+let_stmt       = "let" IDENT "=" expr ;
+assign_stmt    = ( IDENT | index_expr ) "=" expr ;
+fn_stmt        = "fn" IDENT "(" [ param_list ] ")" { statement } "end" ;
+param_list     = IDENT { "," IDENT } ;
+if_stmt        = "if" expr { statement } [ "else" { statement } ] "end" ;
+loop_stmt      = "loop" [ expr ] { statement } "end" ;
+break_stmt     = "break" ;
+ret_stmt       = "ret" [ expr ] ;
+use_stmt       = "use" STRING ;
+expr_stmt      = expr ;
+
+expr           = or_expr ;
+or_expr        = and_expr { "or" and_expr } ;
+and_expr       = cmp_expr { "and" cmp_expr } ;
+cmp_expr       = concat_expr { ( "==" | "!=" | "<" | ">" | "<=" | ">=" ) concat_expr } ;
+concat_expr    = add_expr { ".." add_expr } ;
+add_expr       = mul_expr { ( "+" | "-" ) mul_expr } ;
+mul_expr       = unary { ( "*" | "/" | "%" ) unary } ;
+unary          = ( "-" | "+" | "not" ) unary | primary ;
+primary        = NUMBER
+               | STRING
+               | IDENT [ "(" [ arg_list ] ")" ]
+               | "[" [ expr { "," expr } [ "," ] ] "]"
+               | "(" expr ")"
+               | index_expr ;
+index_expr     = primary "[" expr "]" ;
+
+arg_list       = expr { "," expr } ;
+
+comment        = "--" { any char except newline } newline ;
+empty          = ( newline | ";" ) ;

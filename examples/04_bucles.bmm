@@ -1,0 +1,14 @@
+let i = 0
+loop i < 5
+  println(str(i))
+  i = i + 1
+end
+
+let j = 0
+loop
+  if j == 3
+    break
+  end
+  println(str(j))
+  j = j + 1
+end

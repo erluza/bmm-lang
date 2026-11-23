@@ -1,0 +1,18 @@
+let n = 7
+if n % 2 == 0
+  println("even")
+else
+  println("odd")
+end
+
+let a = 5
+let b = 9
+if a > b
+  println("a bigger")
+else
+  if a == b
+    println("equal")
+  else
+    println("b bigger")
+  end
+end

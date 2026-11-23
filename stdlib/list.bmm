@@ -1,0 +1,9 @@
+fn sum(a)
+  let s = 0
+  let i = 0
+  loop i < len(a)
+    s = s + a[i]
+    i = i + 1
+  end
+  ret s
+end

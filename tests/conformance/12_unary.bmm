@@ -1,0 +1,4 @@
+println(str(-5))
+println(str(not 0))
+println(str(not 7))
+println(str(+3))

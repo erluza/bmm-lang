@@ -1,0 +1,4 @@
+println("a" .. "b")
+println(str(len("abc")))
+println(str("abc"[1]))
+println(str(sub("abcdef", 2, 3)))

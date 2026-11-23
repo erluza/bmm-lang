@@ -1,0 +1,9 @@
+let s = "hello"
+let t = "world"
+let u = s .. " " .. t
+println(u)
+println(str(len(u)))
+println(str(s[1]))
+println(str(ord("a")))
+println(str(chr(97)))
+println(str(sub(u, 0, 5)))

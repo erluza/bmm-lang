@@ -1,0 +1,11 @@
+fn hanoi(n, from, to, aux)
+  if n == 0
+    ret 0
+  end
+  hanoi(n - 1, from, aux, to)
+  println("move " .. str(n) .. " from " .. from .. " to " .. to)
+  hanoi(n - 1, aux, to, from)
+  ret 0
+end
+
+hanoi(3, "A", "C", "B")

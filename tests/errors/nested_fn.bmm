@@ -1,0 +1,8 @@
+fn outer()
+  fn inner()
+    ret 1
+  end
+  ret inner()
+end
+
+println(str(outer()))

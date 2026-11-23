@@ -1,0 +1,6 @@
+println(str(1 and 0))
+println(str(1 and 2))
+println(str(0 or 0))
+println(str(0 or 5))
+println(str(not 0))
+println(str(not 7))

@@ -1,0 +1,3 @@
+bmm: tests/errors/oob.bmm:2:14: error: index out of range
+  println(str(a[5]))
+               ^

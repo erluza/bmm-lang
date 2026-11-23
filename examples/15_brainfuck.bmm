@@ -1,0 +1,71 @@
+-- Brainfuck interpreter. Program prints "Hi"
+let prog = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++."
+let tape = arr()
+let i = 0
+loop i < 30000
+  push(tape, 0)
+  i = i + 1
+end
+let ip = 0
+let ptr = 0
+let plen = len(prog)
+loop ip < plen
+  let c = prog[ip]
+  let ci = ord(c)
+  if ci == 62
+    ptr = ptr + 1
+  end
+  if ci == 60
+    ptr = ptr - 1
+  end
+  if ci == 43
+    tape[ptr] = tape[ptr] + 1
+  end
+  if ci == 45
+    tape[ptr] = tape[ptr] - 1
+  end
+  if ci == 46
+    let v = tape[ptr]
+    -- print character via chr
+    print(chr(v))
+  end
+  if ci == 91
+    if tape[ptr] == 0
+      -- skip to matching ]
+      let depth = 1
+      loop depth > 0
+        ip = ip + 1
+        if ip < plen
+          if ord(prog[ip]) == 91
+            depth = depth + 1
+          end
+          if ord(prog[ip]) == 93
+            depth = depth - 1
+          end
+        else
+          depth = 0
+        end
+      end
+    end
+  end
+  if ci == 93
+    if tape[ptr] != 0
+      let depth = 1
+      loop depth > 0
+        ip = ip - 1
+        if ip >= 0
+          if ord(prog[ip]) == 93
+            depth = depth + 1
+          end
+          if ord(prog[ip]) == 91
+            depth = depth - 1
+          end
+        else
+          depth = 0
+        end
+      end
+    end
+  end
+  ip = ip + 1
+end
+println("")

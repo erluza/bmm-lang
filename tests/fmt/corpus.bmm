@@ -1,0 +1,11 @@
+-- Program prints "Hi"
+let s = "a\nb\tc\\d\"e"
+println(s)
+let a = (1 + 2) * 3
+let b = 10 - (3 - 2)
+println(str(a))
+println(str(b))
+println(str(not (1 and 0)))
+let t = "x" .. " " .. "y"
+println(t)
+-- trailing comment

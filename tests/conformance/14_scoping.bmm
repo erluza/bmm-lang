@@ -1,0 +1,7 @@
+let x = 10
+fn f()
+  let x = 20
+  ret x
+end
+println(str(f()))
+println(str(x))
