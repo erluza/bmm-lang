@@ -1,0 +1,5 @@
+println("a\nb")
+println("t\tx")
+println("q\"q")
+println("b\\b")
+println(str(len("\r")))

@@ -37,5 +37,8 @@ struct Ast {
 
 Ast *ast_new(AstKind kind, int line, int col);
 void ast_free(Ast *a);
+void ast_track_start(void);
+void ast_track_stop(void);
+void ast_track_destroy_all(void);
 
 #endif

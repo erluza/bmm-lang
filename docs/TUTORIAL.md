@@ -87,4 +87,3 @@ println(str(sub(s, 0, 5)))
 2. Print the first ten Fibonacci numbers.
 3. Read a line of input and print it reversed.
 4. Implement insertion sort on an array.
-```

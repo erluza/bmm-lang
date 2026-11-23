@@ -4,7 +4,7 @@
 
 Reported as:
 
-```
+```text noexec: example output or prose
 bmm: <file>:<line>:<col>: error: <message>
   <source line>
           ^

@@ -1,23 +1,24 @@
 B-- gate output
 ========================================
-STAGE S01 build: PASS (7 checks)
+STAGE S01 build: PASS (9 checks)
 STAGE S02 portability: PASS (1 checks)
 STAGE S03 examples: PASS (30 checks)
-STAGE S04 conformance: PASS (45 checks)
+STAGE S04 conformance: PASS (85 checks)
 STAGE S05 errors: PASS (18 checks)
 STAGE S06 fmt: PASS (976 checks)
 STAGE S07 repl: PASS (8 checks)
 STAGE S08 bmc: PASS (12 checks)
 STAGE S09 limits: PASS (10 checks)
 STAGE S10 docs_check: PASS (1 checks)
-STAGE S11 fuzz: PASS (2000 checks)
-STAGE S12 sanitizers: PASS (46 checks)
-STAGE S13 gcstress: PASS (31 checks)
-STAGE S14 mutation: PASS (25 checks)
+STAGE S11 fuzz: PASS (3500 checks)
+STAGE S12 sanitizers: PASS (3551 checks)
+STAGE S13 gcstress: PASS (36 checks)
+STAGE S14 mutation: PASS (35 checks)
 STAGE S15 regression: PASS (21 checks)
-STAGE S16 report: PASS (2 checks)
+STAGE S16 report: FAIL (2 checks)
 STAGE S17 bench: PASS (5 checks)
 STAGE S18 cleanroom: PASS (18 checks)
 
 Failures:
-none
+S16 report: generated report differs from versioned file
+S10: 1 checks < manifest 12

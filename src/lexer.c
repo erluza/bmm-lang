@@ -12,6 +12,15 @@ static int is_kw(const char *s) {
     return 0;
 }
 
+static void set_lex_error(Lexer *lx, const char *msg, int line, int col) {
+    size_t n = strlen(msg);
+    if (n >= sizeof(lx->error_msg)) n = sizeof(lx->error_msg) - 1;
+    memcpy(lx->error_msg, msg, n);
+    lx->error_msg[n] = '\0';
+    lx->error_line = line;
+    lx->error_col = col;
+}
+
 static char *xstrdup(const char *s) {
     size_t n = strlen(s);
     char *b = bmm_alloc(n + 1);
@@ -102,12 +111,12 @@ int lex_source(const char *src, const char *filename, Lexer *lx) {
             char *buf = bmm_alloc(cap);
             while (i < n && src[i] != '"') {
                 if (src[i] == '\n') {
-                    /* unterminated */
+                    set_lex_error(lx, "unterminated string", line, startcol);
                     bmm_free(buf);
                     return -1;
                 }
                 if (src[i] == '\\') {
-                    if (i+1 >= n) { bmm_free(buf); return -1; }
+                    if (i+1 >= n) { set_lex_error(lx, "unterminated string", line, startcol); bmm_free(buf); return -1; }
                     char e = src[i+1];
                     char out;
                     if (e == 'n') out = '\n';
@@ -115,7 +124,7 @@ int lex_source(const char *src, const char *filename, Lexer *lx) {
                     else if (e == 'r') out = '\r';
                     else if (e == '\\') out = '\\';
                     else if (e == '"') out = '"';
-                    else { bmm_free(buf); return -1; }
+                    else { set_lex_error(lx, "bad escape in string", line, col+1); bmm_free(buf); return -1; }
                     if (len + 2 >= cap) { cap *= 2; buf = bmm_realloc(buf, cap); }
                     buf[len++] = out;
                     i += 2; col += 2;
@@ -125,7 +134,7 @@ int lex_source(const char *src, const char *filename, Lexer *lx) {
                     i++; col++;
                 }
             }
-            if (i >= n) { bmm_free(buf); return -1; }
+            if (i >= n) { set_lex_error(lx, "unterminated string", line, startcol); bmm_free(buf); return -1; }
             i++; col++;
             buf[len] = '\0';
             /* store as text (may contain embedded NUL? no, \0 terminator; strings can contain? no escapes for NUL) */
@@ -165,6 +174,18 @@ int lex_source(const char *src, const char *filename, Lexer *lx) {
         if (c == '[') { add_tok(lx, TK_LBRACKET, xstrdup("["), 0, line, col); i++; col++; continue; }
         if (c == ']') { add_tok(lx, TK_RBRACKET, xstrdup("]"), 0, line, col); i++; col++; continue; }
         /* unknown */
+        {
+            char msg[64];
+            const char *pre = "unexpected character '";
+            size_t mi = 0;
+            while (pre[mi]) { msg[mi] = pre[mi]; mi++; }
+            if (c == '\\') { msg[mi++] = '\\'; msg[mi++] = '\\'; }
+            else if (c == '\'') { msg[mi++] = '\\'; msg[mi++] = '\''; }
+            else msg[mi++] = c;
+            msg[mi++] = '\'';
+            msg[mi] = '\0';
+            set_lex_error(lx, msg, line, col);
+        }
         return -1;
     }
     if (lx->ntoks > 0 && lx->toks[lx->ntoks-1].kind != TK_NL)

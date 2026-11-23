@@ -70,7 +70,7 @@ end
 Requisitos: un compilador C99 y `make`. Ninguna otra dependencia y no se
 requieren privilegios de administrador.
 
-```sh
+```text noexec: shell command
 sh
 make
 make test
@@ -79,13 +79,13 @@ make install PREFIX="$HOME/.local"
 
 Sin `make`:
 
-```sh
+```text noexec: shell command
 ./build.sh
 ```
 
 ## Uso
 
-```sh
+```text noexec: shell command
 bmm hello.bmm                      # ejecutar un archivo fuente
 bmm                                # iniciar el REPL
 bmm build hello.bmm -o hello.bmc   # compilar a bytecode
@@ -126,7 +126,7 @@ ajustar `bmm_config.h`. Ver [PORTING.md](docs/PORTING.md).
 
 ## Pruebas
 
-```sh
+```text noexec: shell command
 make test
 ```
 

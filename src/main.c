@@ -61,6 +61,8 @@ static int run_source(const char *src, const char *filename, int argc, char **ar
     if (parse_source(src, filename, &blk, &pp) != 0) {
         print_error(filename, src, pp.error_line, pp.error_col, pp.error_msg ? pp.error_msg : "parse error");
         lexer_free(&pp.lx);
+        bmm_free(pp.error_msg);
+        ast_free(blk);
         return 1;
     }
     lexer_free(&pp.lx);
@@ -192,18 +194,6 @@ static int run_file(const char *path, int argc, char **argv, int max_steps, int 
         }
         int result = vm->had_error ? 1 : (rc != 0 ? 1 : 0);
         gc_collect(vm);
-        /* free funcs */
-        for (size_t i = 0; i < vm->nfuncs; i++) {
-            if (vm->funcs[i]) {
-                bmm_free(vm->funcs[i]->code);
-                bmm_free(vm->funcs[i]->lineinfo);
-                bmm_free(vm->funcs[i]->colinfo);
-                bmm_free(vm->funcs[i]->name);
-                bmm_free(vm->funcs[i]->consts);
-                bmm_free(vm->funcs[i]);
-            }
-        }
-        bmm_free(vm->funcs);
         vm_free(vm);
         gc_shutdown();
         return result;
@@ -294,6 +284,8 @@ int main(int argc, char **argv) {
         if (parse_source(src, srcpath, &blk, &pp) != 0) {
             print_error(srcpath, src, pp.error_line, pp.error_col, pp.error_msg ? pp.error_msg : "parse error");
             lexer_free(&pp.lx);
+            bmm_free(pp.error_msg);
+            ast_free(blk);
             bmm_free(src);
             return 1;
         }
@@ -412,6 +404,8 @@ int main(int argc, char **argv) {
             if (parse_source(src, path, &blk, &pp) != 0) {
                 print_error(path, src, pp.error_line, pp.error_col, pp.error_msg ? pp.error_msg : "parse error");
                 lexer_free(&pp.lx);
+                bmm_free(pp.error_msg);
+                ast_free(blk);
                 bmm_free(src);
                 return 1;
             }
@@ -498,6 +492,8 @@ int main(int argc, char **argv) {
         if (parse_source(src, argv[2], &blk, &pp) != 0) {
             print_error(argv[2], src, pp.error_line, pp.error_col, pp.error_msg ? pp.error_msg : "parse error");
             lexer_free(&pp.lx);
+            bmm_free(pp.error_msg);
+            ast_free(blk);
             bmm_free(src);
             return 1;
         }

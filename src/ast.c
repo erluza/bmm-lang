@@ -2,12 +2,77 @@
 #include "gc.h"
 #include <string.h>
 
+static void free_str(char *s);
+
+static Ast **tracked = NULL;
+static size_t ntracked = 0, ctracked = 0;
+static int tracking = 0;
+
+void ast_track_start(void) {
+    ntracked = 0;
+    tracking = 1;
+}
+
+void ast_track_stop(void) {
+    tracking = 0;
+    ntracked = 0;
+}
+
+static void ast_free_shallow(Ast *a) {
+    if (!a) return;
+    switch (a->kind) {
+        case AST_STR: free_str(a->as.str.value); break;
+        case AST_NAME: free_str(a->as.name.name); break;
+        case AST_CALL:
+            free_str(a->as.call.name);
+            bmm_free(a->as.call.args);
+            break;
+        case AST_ARRAY:
+            bmm_free(a->as.arr.elems);
+            break;
+        case AST_LET:
+            free_str(a->as.let.name);
+            break;
+        case AST_FN:
+            free_str(a->as.fn.name);
+            for (int i = 0; i < a->as.fn.nparams; i++) free_str(a->as.fn.params[i]);
+            bmm_free(a->as.fn.params);
+            break;
+        case AST_USE:
+            free_str(a->as.use.path);
+            break;
+        case AST_BLOCK:
+            bmm_free(a->as.block.stmts);
+            break;
+        default: break;
+    }
+}
+
+void ast_track_destroy_all(void) {
+    for (size_t i = 0; i < ntracked; i++) {
+        ast_free_shallow(tracked[i]);
+        bmm_free(tracked[i]);
+    }
+    ntracked = 0;
+    bmm_free(tracked);
+    tracked = NULL;
+    ctracked = 0;
+    tracking = 0;
+}
+
 Ast *ast_new(AstKind kind, int line, int col) {
     Ast *a = bmm_alloc(sizeof(Ast));
     memset(a, 0, sizeof(Ast));
     a->kind = kind;
     a->line = line;
     a->col = col;
+    if (tracking) {
+        if (ntracked >= ctracked) {
+            ctracked = ctracked ? ctracked * 2 : 64;
+            tracked = bmm_realloc(tracked, ctracked * sizeof(Ast*));
+        }
+        tracked[ntracked++] = a;
+    }
     return a;
 }
 

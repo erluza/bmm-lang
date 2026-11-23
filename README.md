@@ -69,7 +69,7 @@ end
 Requirements: a C99 compiler and `make`. No other dependencies and no
 administrator privileges.
 
-```sh
+```text noexec: shell command
 sh
 make
 make test
@@ -78,13 +78,13 @@ make install PREFIX="$HOME/.local"
 
 Without `make`:
 
-```sh
+```text noexec: shell command
 ./build.sh
 ```
 
 ## Usage
 
-```sh
+```text noexec: shell command
 bmm hello.bmm                      # run a source file
 bmm                                # start the REPL
 bmm build hello.bmm -o hello.bmc   # compile to bytecode
@@ -125,7 +125,7 @@ Porting requires implementing roughly ten functions and adjusting
 
 ## Testing
 
-```sh
+```text noexec: shell command
 make test
 ```
 

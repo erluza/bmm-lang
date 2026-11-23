@@ -4,7 +4,30 @@
 #include "gc.h"
 #include <string.h>
 
-static Token *peek(Parser *p) { return &p->lx.toks[p->lx.pos]; }
+static const char *token_kind_name(TokenKind k) {
+    switch (k) {
+        case TK_NUM: return "NUM";
+        case TK_STR: return "STR";
+        case TK_IDENT: return "IDENT";
+        case TK_KW: return "KW";
+        case TK_OP: return "OP";
+        case TK_COMMA: return "COMMA";
+        case TK_SEMI: return "SEMI";
+        case TK_LPAREN: return "LPAREN";
+        case TK_RPAREN: return "RPAREN";
+        case TK_LBRACKET: return "LBRACKET";
+        case TK_RBRACKET: return "RBRACKET";
+        case TK_COMMENT: return "COMMENT";
+        case TK_NL: return "NL";
+        case TK_EOF: return "EOF";
+    }
+    return "TOKEN";
+}
+
+static Token *peek(Parser *p) {
+    while (p->lx.toks[p->lx.pos].kind == TK_COMMENT) p->lx.pos++;
+    return &p->lx.toks[p->lx.pos];
+}
 static Token *advance(Parser *p) { return &p->lx.toks[p->lx.pos++]; }
 static int is_sep(Token *t) { return t->kind == TK_NL || t->kind == TK_SEMI || t->kind == TK_COMMENT; }
 static void skip_sep(Parser *p) { while (is_sep(peek(p))) advance(p); }
@@ -24,7 +47,7 @@ static int expect(Parser *p, TokenKind kind, const char *val) {
         const char *prefix = "expected ";
         size_t pi = 0;
         while (prefix[pi]) { buf[pi] = prefix[pi]; pi++; }
-        const char *w = val ? val : "token";
+        const char *w = val ? val : token_kind_name(kind);
         for (size_t qi = 0; w[qi]; qi++) buf[pi++] = w[qi];
         buf[pi] = '\0';
         set_err(p, t, buf);
@@ -254,18 +277,18 @@ static Ast *parse_primary(Parser *p) {
             int nargs = 0, cap = 0;
             if (peek(p)->kind != TK_RPAREN) {
                 Ast *e = parse_expr(p);
-                if (p->had_error) return NULL;
+                if (p->had_error) { bmm_free(args); return NULL; }
                 if (nargs >= cap) { cap = cap?cap*2:4; args = bmm_realloc(args, cap*sizeof(Ast*)); }
                 args[nargs++] = e;
                 while (peek(p)->kind == TK_COMMA) {
                     advance(p);
                     e = parse_expr(p);
-                    if (p->had_error) return NULL;
+                    if (p->had_error) { bmm_free(args); return NULL; }
                     if (nargs >= cap) { cap = cap?cap*2:4; args = bmm_realloc(args, cap*sizeof(Ast*)); }
                     args[nargs++] = e;
                 }
             }
-            if (!expect(p, TK_RPAREN, NULL)) return NULL;
+            if (!expect(p, TK_RPAREN, NULL)) { bmm_free(args); return NULL; }
             Ast *a = ast_new(AST_CALL, t->line, t->col);
             a->as.call.name = strdup(t->text);
             a->as.call.args = args;
@@ -304,19 +327,19 @@ static Ast *parse_primary(Parser *p) {
         int ne = 0, cap = 0;
         if (peek(p)->kind != TK_RBRACKET) {
             Ast *e = parse_expr(p);
-            if (p->had_error) return NULL;
+            if (p->had_error) { bmm_free(elems); return NULL; }
             if (ne >= cap) { cap = cap?cap*2:4; elems = bmm_realloc(elems, cap*sizeof(Ast*)); }
             elems[ne++] = e;
             while (peek(p)->kind == TK_COMMA) {
                 advance(p);
                 if (peek(p)->kind == TK_RBRACKET) break;
                 e = parse_expr(p);
-                if (p->had_error) return NULL;
+                if (p->had_error) { bmm_free(elems); return NULL; }
                 if (ne >= cap) { cap = cap?cap*2:4; elems = bmm_realloc(elems, cap*sizeof(Ast*)); }
                 elems[ne++] = e;
             }
         }
-        if (!expect(p, TK_RBRACKET, NULL)) return NULL;
+        if (!expect(p, TK_RBRACKET, NULL)) { bmm_free(elems); return NULL; }
         Ast *a = ast_new(AST_ARRAY, t->line, t->col);
         a->as.arr.elems = elems;
         a->as.arr.nelems = ne;
@@ -351,7 +374,16 @@ static Ast *parse_primary(Parser *p) {
         }
         return e;
     }
-    set_err(p, t, "unexpected token");
+    {
+        char msg[64];
+        const char *pre = "unexpected token ";
+        size_t mi = 0;
+        while (pre[mi]) { msg[mi] = pre[mi]; mi++; }
+        const char *kn = token_kind_name(t->kind);
+        for (size_t q = 0; kn[q]; q++) msg[mi++] = kn[q];
+        msg[mi] = '\0';
+        set_err(p, t, msg);
+    }
     return NULL;
 }
 
@@ -538,18 +570,26 @@ int parse_source(const char *src, const char *filename, Ast **out_block, Parser 
     memset(p, 0, sizeof(*p));
     p->filename = filename;
     p->src = src;
+    *out_block = NULL;
+    ast_track_start();
     if (lex_source(src, filename, &p->lx) != 0) {
         p->had_error = 1;
-        p->error_msg = strdup("lex error");
-        p->error_line = 1;
-        p->error_col = 1;
+        size_t n = strlen(p->lx.error_msg);
+        p->error_msg = bmm_alloc(n + 1);
+        memcpy(p->error_msg, p->lx.error_msg, n + 1);
+        p->error_line = p->lx.error_line ? p->lx.error_line : 1;
+        p->error_col = p->lx.error_col ? p->lx.error_col : 1;
+        ast_track_destroy_all();
         return -1;
     }
-    if (check_nesting(p) != 0) return -1;
+    if (check_nesting(p) != 0) { ast_track_destroy_all(); return -1; }
     Ast *blk = parse_program(p);
+    *out_block = blk;
     if (p->had_error) {
+        *out_block = NULL;
+        ast_track_destroy_all();
         return -1;
     }
-    *out_block = blk;
+    ast_track_stop();
     return 0;
 }

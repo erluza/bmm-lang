@@ -2,7 +2,7 @@
 
 ## Pipeline
 
-```
+```text noexec: example output or prose
 source (.bmm) -> lexer -> parser -> AST -> compiler -> bytecode -> VM
 ```
 

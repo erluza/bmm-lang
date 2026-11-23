@@ -1,0 +1,11 @@
+if 0
+  println("no")
+else
+  println("zero false")
+end
+if 7
+  println("nonzero true")
+end
+println(str(not 0))
+println(str(1 and 0))
+println(str(0 or 2))

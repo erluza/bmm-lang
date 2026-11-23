@@ -51,8 +51,8 @@ mutation("M04 signed arithmetic", "src/vm.c",
 
 # M05 division by zero
 mutation("M05 division by zero unchecked", "src/vm.c",
-         'if (b == 0) { vm_error(vm, "division by zero", line, col); break; }',
-         'if (0) { vm_error(vm, "division by zero", line, col); break; }', "divzero")
+         'else if (op == OP_DIV) {\n                    if (b == 0) { vm_error(vm, "division by zero", line, col); break; }',
+         'else if (op == OP_DIV) {\n                    if (0) { vm_error(vm, "division by zero", line, col); break; }', "divzero")
 
 # M06 fmt quotes
 mutation("M06 fmt drops string quotes", "src/fmt.c",
@@ -105,16 +105,16 @@ mutation("M15 bmc drops argv", "src/main.c",
 
 # M16 checksum
 mutation("M16 bmc checksum unchecked", "src/bytecode_io.c",
-         "if (stored_crc != calc_crc) return -1;", "if (0) return -1;", "bmccrc")
+         "if (stored_crc != calc_crc) return -1;", "(void)stored_crc; (void)calc_crc; if (0) return -1;", "crc")
 
 # M17 version
 mutation("M17 bmc version unchecked", "src/bytecode_io.c",
-         "if (version != 2) return -1;", "if (0) return -1;", "bmcver")
+         "if (version != 2) return -1;", "(void)version; if (0) return -1;", "version")
 
 # M18 index bounds
 mutation("M18 index bounds unchecked", "src/vm.c",
-         'if (idx < 0 || idx >= (int)a->len) { vm_error(vm, "index out of range", line, col); break; }',
-         'if (0) { vm_error(vm, "index out of range", line, col); break; }', "oob")
+         'ObjArray *a = (ObjArray*)objv.as.o;\n                    if (idx < 0 || idx >= (int)a->len) { vm_error(vm, "index out of range", line, col); break; }',
+         'ObjArray *a = (ObjArray*)objv.as.o;\n                    if (0) { vm_error(vm, "index out of range", line, col); break; }', "oob")
 
 # M19 jump offset truncation
 mutation("M19 jump offset truncated", "src/vm.c",
@@ -129,7 +129,7 @@ mutation("M20 wrong not-a-function message", "src/compiler.c",
 # M21 GC roots
 mutation("M21 GC misses stack roots", "src/gc.c",
          "for (size_t i = 0; i < vm->sp; i++) mark_value(vm->stack[i]);",
-         "for (size_t i = 0; i < 0; i++) mark_value(vm->stack[i]);", "gcstress")
+         "for (size_t i = 0; i < vm->sp; i++) { (void)i; }", "gcstress")
 
 # M22 portability
 mutation("M22 libc header outside PAL", "src/out.c",
@@ -143,6 +143,73 @@ mutation("M23 conformance .out altered", "tests/conformance/01_arith.out",
 mutation("M24 reference differs", "ref/bmm.py",
          "        if kind == \"num\":\n            return self.wrap(e[1])",
          "        if kind == \"num\":\n            return self.wrap(e[1]) + 1", "differential")
+
+
+def probe_output(copy, src, expected):
+    p = os.path.join(copy, "tests/fmt/probe.bmm")
+    open(p, "w").write(src)
+    rc, out, err = prog(copy, p)
+    return not (rc == 0 and out == expected)
+
+
+def probe_crc(copy):
+    src = os.path.join(copy, "tests/fmt/crcprobe.bmm")
+    open(src, "w").write('println("ok")\n')
+    bmc = os.path.join(copy, "tests/fmt/crcprobe.bmc")
+    r = subprocess.run([os.path.join(copy, "bmm"), "build", src, "-o", bmc], cwd=copy, capture_output=True, text=True)
+    if r.returncode != 0:
+        return False
+    data = bytearray(open(bmc, "rb").read())
+    data[-1] ^= 0xFF
+    open(bmc, "wb").write(data)
+    rc, out, err = run([os.path.join(copy, "bmm"), "run", bmc], cwd=copy)
+    return rc == 0
+
+def probe_version(copy):
+    src = os.path.join(copy, "tests/fmt/verprobe.bmm")
+    open(src, "w").write('println("ok")\n')
+    bmc = os.path.join(copy, "tests/fmt/verprobe.bmc")
+    r = subprocess.run([os.path.join(copy, "bmm"), "build", src, "-o", bmc], cwd=copy, capture_output=True, text=True)
+    if r.returncode != 0:
+        return False
+    data = bytearray(open(bmc, "rb").read())
+    data[4] = 99
+    import zlib, struct
+    crc = zlib.crc32(bytes(data[:-4])) & 0xFFFFFFFF
+    data[-4:] = struct.pack("<I", crc)
+    open(bmc, "wb").write(data)
+    rc, out, err = run([os.path.join(copy, "bmm"), "run", bmc], cwd=copy)
+    return rc == 0
+
+def probe_suboob(copy):
+    return probe_output(copy, 'println(str(sub("abc", 1, 9)))\n', "")
+
+def probe_chr(copy):
+    return probe_output(copy, 'println(chr(65))\n', "A\n")
+
+def probe_ord(copy):
+    return probe_output(copy, 'println(str(ord("A")))\n', "65\n")
+
+def probe_intconv(copy):
+    return probe_output(copy, 'println(str(int("-5")))\n', "-5\n")
+
+def probe_push(copy):
+    return probe_output(copy, 'let a = arr()\npush(a, 7)\nprintln(str(len(a)))\n', "1\n")
+
+def probe_pop(copy):
+    return probe_output(copy, 'let a = [1, 2]\nprintln(str(pop(a)))\n', "2\n")
+
+def probe_lt(copy):
+    return probe_output(copy, 'println(str(1 < 2))\n', "1\n")
+
+def probe_concat(copy):
+    return probe_output(copy, 'println("a" .. "b")\n', "ab\n")
+
+def probe_escape(copy):
+    return probe_output(copy, 'println("a\\nb")\n', "a\nb\n")
+
+def probe_neg(copy):
+    return probe_output(copy, 'println(str(-5))\n', "-5\n")
 
 def probe_int32(copy):
     p = os.path.join(copy, "tests/fmt/overflow_probe.bmm")
@@ -210,7 +277,7 @@ def probe_bmc(copy, which):
     bmc = os.path.join(copy, "tests/fmt/argv_probe.bmc")
     r = subprocess.run([os.path.join(copy, "bmm"), "build", src, "-o", bmc], cwd=copy, capture_output=True, text=True)
     if r.returncode != 0:
-        return True
+        return False
     if which == "argv":
         rc, out, err = run([os.path.join(copy, "bmm"), "run", bmc, "Z"], cwd=copy)
         return out.strip() != "Z"
@@ -242,9 +309,13 @@ def probe_gcstress(copy):
                        [os.path.join(copy, "src", "pal", "pal_posix.c"), "-o", gc], cwd=copy, capture_output=True, text=True)
     if r.returncode != 0:
         return True
-    p = os.path.join(copy, "examples/07_arreglos.bmm")
-    rc, out, err = run([gc, p], cwd=copy)
-    return rc != 0
+    p = os.path.join(copy, "tests/fmt/gcprobe.bmm")
+    open(p, "w").write('println(("a" .. "b") .. "c")\n')
+    try:
+        r = subprocess.run([gc, p], cwd=copy, capture_output=True, timeout=60)
+        return not (r.returncode == 0 and r.stdout == b"abc\n")
+    except subprocess.TimeoutExpired:
+        return True
 
 def probe_portability(copy):
     rc, out, err = run(["sh", os.path.join(copy, "tests/portability_check.sh")], cwd=copy)
@@ -262,11 +333,38 @@ def probe_differential(copy):
     rc2, out2, err2 = py(copy, p)
     return (rc1, out1, err1) != (rc2, out2, err2)
 
+mutation("M25 builtin sub bounds unchecked", "src/vm.c",
+         "if (start < 0 || length < 0 || start + length > (int)s->len) { vm_error(vm, \"index out of range\", line, col); break; }",
+         "if (0) { vm_error(vm, \"index out of range\", line, col); break; }", "suboob")
+mutation("M26 builtin chr wrong code point", "src/vm.c",
+         "if (cp < 0x80) { buf[len++] = (char)cp; }", "if (cp < 0x80) { buf[len++] = (char)(cp + 1); }", "chr")
+mutation("M27 builtin ord off by one", "src/vm.c",
+         "vm_push(vm, val_int(cp));", "vm_push(vm, val_int(cp + 1));", "ord")
+mutation("M28 builtin int ignores sign", "src/vm.c",
+         "if (neg) val = -val;", "(void)neg; if (0) val = -val;", "intconv")
+mutation("M29 builtin push no-op", "src/vm.c",
+         "array_push((ObjArray*)a.as.o, v);", "(void)v;", "push")
+mutation("M30 builtin pop returns first", "src/vm.c",
+         "Value v = array_pop(ar);", "Value v = ar->items[0];", "pop")
+mutation("M31 comparison LT reversed", "src/vm.c",
+         "if (op == OP_LT) res = lv.as.i < rv.as.i;", "if (op == OP_LT) res = lv.as.i > rv.as.i;", "lt")
+mutation("M32 concat drops right operand", "src/vm.c",
+         "memcpy(ns->chars, ls->chars, ls->len);\n                memcpy(ns->chars + ls->len, rs->chars, rs->len);",
+         "memcpy(ns->chars, ls->chars, ls->len);", "concat")
+mutation("M33 string escape newline not decoded", "src/lexer.c",
+         "if (e == 'n') out = '\\n';", "if (e == 'n') out = 'n';", "escape")
+mutation("M34 unary minus ignored", "src/vm.c",
+         "if (v.as.i == INT32_MIN) vm_push(vm, val_int(INT32_MIN));\n                else vm_push(vm, val_int(-v.as.i));",
+         "vm_push(vm, v);", "neg")
+
 PROBES = {
     "int32": probe_int32, "divzero": probe_divzero, "oob": probe_oob,
     "argvcall": probe_argvcall, "bigjump": probe_bigjump, "gcstress": probe_gcstress,
     "portability": probe_portability, "conformance": probe_conformance,
     "differential": probe_differential,
+    "suboob": probe_suboob, "chr": probe_chr, "ord": probe_ord, "intconv": probe_intconv,
+    "push": probe_push, "pop": probe_pop, "lt": probe_lt, "concat": probe_concat,
+    "escape": probe_escape, "neg": probe_neg, "crc": probe_crc, "version": probe_version,
 }
 
 def main():
@@ -278,8 +376,8 @@ def main():
         shutil.copytree(ROOT, copy)
         p = os.path.join(copy, file)
         text = open(p).read()
-        if old not in text:
-            print(f"{name}: MUTATION-PATTERN-MISSING")
+        if text.count(old) != 1:
+            print(f"{name}: INVALID (patch count {text.count(old)})")
             survived.append(name)
             continue
         open(p, "w").write(text.replace(old, new, 1))
@@ -290,7 +388,8 @@ def main():
                                sorted([os.path.join(copy, "src", f) for f in os.listdir(os.path.join(copy, "src")) if f.endswith(".c")]) +
                                [os.path.join(copy, "src", "pal", "pal_posix.c"), "-o", san], cwd=copy, capture_output=True, text=True)
             if r.returncode != 0:
-                detected.append((name, "ubsan build failed"))
+                print(f"{name}: INVALID (ubsan build failed)")
+                survived.append(name)
                 continue
             ov = os.path.join(copy, "tests/fmt/overflow_probe.bmm")
             open(ov, "w").write("println(str(2147483647 + 1))\n")
@@ -308,7 +407,8 @@ def main():
                                sorted([os.path.join(copy, "src", f) for f in os.listdir(os.path.join(copy, "src")) if f.endswith(".c")]) +
                                [os.path.join(copy, "src", "pal", "pal_posix.c"), "-o", san], cwd=copy, capture_output=True, text=True)
             if r.returncode != 0:
-                detected.append((name, "sanitizer build failed"))
+                print(f"{name}: INVALID (sanitizer build failed)")
+                survived.append(name)
                 continue
             env = dict(os.environ, ASAN_OPTIONS="detect_leaks=1")
             p2 = subprocess.run([san, os.path.join(copy, "examples/01_hola.bmm")], cwd=copy, capture_output=True, text=True, env=env)
@@ -319,7 +419,8 @@ def main():
                 survived.append(name)
             continue
         if not build(copy):
-            detected.append((name, "build failed"))
+            print(f"{name}: INVALID (build failed)")
+            survived.append(name)
             continue
         if probe in PROBES:
             hit = PROBES[probe](copy)

@@ -41,6 +41,7 @@ int fmt_file(const char *path) {
         out_putc(&o, '\n');
         out_flush_stderr(&o);
         lexer_free(&lx);
+        bmm_free(pp.error_msg);
         ast_free(blk);
         bmm_free(buf);
         return 1;

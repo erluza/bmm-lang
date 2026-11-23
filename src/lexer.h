@@ -18,6 +18,9 @@ typedef struct {
     int ntoks;
     int cap;
     int pos;
+    char error_msg[128];
+    int error_line;
+    int error_col;
 } Lexer;
 
 /* Lex src into a Lexer (allocated). Returns 0 on success. */

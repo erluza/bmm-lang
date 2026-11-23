@@ -117,6 +117,7 @@ int bmc_decode(const char *buf, size_t flen, BmmVM *vm, Compiler *c) {
     unsigned int nglobals = GET16();
     unsigned int nfuncs = GET16();
     unsigned int entry = GET16();
+    if (nglobals > flen || nfuncs > flen) return -1;
     vm->nglobals = nglobals;
     vm->globals = bmm_alloc((nglobals?nglobals:1)*sizeof(Value));
     vm->global_defined = bmm_alloc((nglobals?nglobals:1)*sizeof(char));
@@ -124,6 +125,7 @@ int bmc_decode(const char *buf, size_t flen, BmmVM *vm, Compiler *c) {
     for (unsigned int i = 0; i < nglobals; i++) { vm->globals[i] = val_int(0); vm->global_defined[i] = (char)GET(); }
     vm->global_names = bmm_alloc((nglobals?nglobals:1)*sizeof(char*));
     vm->owns_global_names = 1;
+    for (unsigned int i = 0; i < nglobals; i++) vm->global_names[i] = NULL;
     for (unsigned int i = 0; i < nglobals; i++) {
         unsigned int gl = GET16();
         if (gl > flen || pos + gl > flen) return -1;
@@ -136,9 +138,12 @@ int bmc_decode(const char *buf, size_t flen, BmmVM *vm, Compiler *c) {
     vm->nfuncs = nfuncs;
     vm->func_cap = nfuncs ? nfuncs : 1;
     vm->funcs = bmm_alloc(vm->func_cap * sizeof(Func*));
+    vm->owns_funcs = 1;
+    for (unsigned int i = 0; i < nfuncs; i++) vm->funcs[i] = NULL;
     for (unsigned int fi = 0; fi < nfuncs; fi++) {
         Func *f = bmm_alloc(sizeof(Func));
         memset(f, 0, sizeof(Func));
+        vm->funcs[fi] = f;
         size_t nl = strlen(buf + pos);
         f->name = NULL;
         /* copy name */
@@ -149,6 +154,7 @@ int bmc_decode(const char *buf, size_t flen, BmmVM *vm, Compiler *c) {
         f->arity = GET();
         f->nlocals = GET16();
         unsigned int code_len = GET32();
+        if (code_len > flen) return -1;
         f->code = bmm_alloc(code_len ? code_len : 1);
         f->code_len = code_len;
         for (unsigned int i = 0; i < code_len; i++) f->code[i] = GET();
@@ -157,6 +163,7 @@ int bmc_decode(const char *buf, size_t flen, BmmVM *vm, Compiler *c) {
         for (unsigned int i = 0; i < code_len; i++) f->lineinfo[i] = (int)GET32();
         for (unsigned int i = 0; i < code_len; i++) f->colinfo[i] = (int)GET32();
         unsigned int nconsts = GET16();
+        if (nconsts > flen) return -1;
         f->nconsts = nconsts;
         f->const_cap = nconsts ? nconsts : 1;
         f->consts = bmm_alloc(f->const_cap * sizeof(Value));
@@ -167,12 +174,12 @@ int bmc_decode(const char *buf, size_t flen, BmmVM *vm, Compiler *c) {
                 f->consts[ci] = val_int((int32_t)u);
             } else {
                 unsigned int slen = GET16();
+                if (slen > flen || pos + slen > flen) return -1;
                 ObjString *s = new_string(buf + pos, slen);
                 pos += slen;
                 f->consts[ci] = val_str((Obj*)s);
             }
         }
-        vm->funcs[fi] = f;
     }
     uint32_t srclen = GET32();
     if (srclen > flen || pos + srclen + 4 > flen) { return -1; }

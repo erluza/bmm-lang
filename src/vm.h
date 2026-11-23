@@ -25,6 +25,7 @@ struct BmmVM {
     char *global_defined;
     char **global_names;
     int owns_global_names;
+    int owns_funcs;
     size_t nglobals;
     Func **funcs;
     size_t nfuncs;

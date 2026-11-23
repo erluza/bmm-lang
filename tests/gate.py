@@ -68,6 +68,9 @@ def stage_s01():
     s.check("set +e" not in lint_text, "tests contain set +e")
     s.check("2>/dev/null" not in lint_text, "tests contain 2>/dev/null")
     s.check(lint_text.count("exit 0") <= 2, "tests contain early exit 0")
+    mut = read("tests/mutate.py")
+    s.check("detected.append((name, \"build failed\")" not in mut, "mutate.py treats build failure as detection")
+    s.check("detected.append((name, \"sanitizer build failed\")" not in mut, "mutate.py treats sanitizer build failure as detection")
     return s.done()
 
 def stage_s02():
@@ -95,15 +98,24 @@ def stage_s03():
 def stage_s04():
     s = Stage("S04 conformance")
     index = read("tests/conformance/INDEX.md") if os.path.exists("tests/conformance/INDEX.md") else ""
+    rules = re.findall(r"^(R\d{3})\b", read("docs/LANGUAGE_REFERENCE.md"), re.M)
+    referenced = set(re.findall(r"\b(\d{2}_[A-Za-z0-9_]+)\b", index))
+    for rule in rules:
+        s.check(rule in index, f"{rule}: missing from INDEX.md")
     for path in sorted(glob.glob("tests/conformance/*.bmm")):
         base = path[:-4]
+        name = os.path.basename(base)
         exp = read(base + ".out")
         code = int(read(base + ".code").strip())
         rc, out, err = run_program(path)
         rc2, out2, err2 = run(["python3", PY, path])
         s.check(rc == code and out == exp and err == "", f"{base}: C mismatch")
         s.check(rc2 == code and out2 == exp and err2 == "", f"{base}: Python mismatch")
-        s.check(os.path.basename(path)[:-4] in index, f"{base}: missing from INDEX.md")
+        s.check(name in referenced, f"{base}: missing from INDEX.md")
+    for ref in referenced:
+        if not os.path.exists(os.path.join("tests/conformance", ref + ".bmm")) and not os.path.exists(os.path.join("tests/errors", ref + ".bmm")):
+            s.check(False, f"INDEX references missing test {ref}")
+    print(f"conformance rules: {len(rules)}; tests: {len(glob.glob('tests/conformance/*.bmm'))}")
     return s.done()
 
 def stage_s05():
@@ -266,12 +278,17 @@ def stage_s10():
         if line.startswith("Executed "):
             try: blocks = int(line.split()[1])
             except: pass
-    s.check(rc.returncode == 0 and blocks >= 9, "docs_check failed")
+    expected_blocks = 0
+    for path in sorted(glob.glob("docs/*.md")) + ["README.md", "README.es.md"]:
+        expected_blocks += sum(1 for line in open(path, errors="ignore") if line.startswith("```bmm"))
+    s.check(rc.returncode == 0 and blocks == expected_blocks, f"docs_check executed {blocks} of {expected_blocks} executable blocks")
+    print(f"docs executable blocks: {blocks}")
     return s.done()
 
 def stage_s11():
     s = Stage("S11 fuzz")
     random.seed(424242)
+    print("fuzz seed: 424242")
     for i in range(2000):
         n = random.randint(1, 6)
         lines = []
@@ -287,6 +304,43 @@ def stage_s11():
         s.check((rc1, out1, err1) == (rc2, out2, err2), f"fuzz {i} mismatch")
         if s.fails:
             break
+    # random and truncated sources (ASCII to keep both implementations comparable)
+    alphabet = "abcdefghijklmnopqrstuvwxyz0123456789+-*/%<>=()[]{},\"\\ \n\t;"
+    for i in range(1000):
+        n = random.randint(0, 200)
+        src = "".join(random.choice(alphabet) for _ in range(n))
+        if random.random() < 0.5:
+            src = src[:random.randint(0, len(src))]
+        p = os.path.join(TMP, "fuzzsrc.bmm")
+        open(p, "w").write(src)
+        rc1, out1, err1 = run([BMM, p], timeout=10)
+        rc2, out2, err2 = run(["python3", PY, p], timeout=10)
+        s.check((rc1, out1, err1) == (rc2, out2, err2), f"random source {i} mismatch")
+        if s.fails:
+            break
+    # corrupt .bmc
+    valid = os.path.join(TMP, "fuzzbmc.bmc")
+    run([BMM, "build", "examples/01_hola.bmm", "-o", valid])
+    base = open(valid, "rb").read()
+    for i in range(500):
+        data = bytearray(base)
+        mode = random.randrange(4)
+        if mode == 0:
+            pos = random.randrange(len(data))
+            data[pos] ^= random.randrange(1, 256)
+        elif mode == 1:
+            data = data[:random.randrange(0, len(data))]
+        elif mode == 2:
+            pos = random.randrange(len(data))
+            data[pos] = random.randrange(256)
+        else:
+            data[4] = random.randrange(256)
+        p = os.path.join(TMP, "badbmc.bmc")
+        open(p, "wb").write(data)
+        rc, out, err = run([BMM, "run", p], timeout=10)
+        s.check(rc != 0, f"corrupt bmc {i} accepted")
+        if s.fails:
+            break
     return s.done()
 
 def stage_s12():
@@ -300,23 +354,75 @@ def stage_s12():
     if rc.returncode != 0:
         return s.done()
     env = dict(os.environ, ASAN_OPTIONS="detect_leaks=1")
-    def san_run(cmd, inp=None):
-        p = subprocess.run(cmd, input=inp, capture_output=True, text=True, timeout=60, cwd=ROOT, env=env)
-        bad = "Sanitizer" in p.stderr or "runtime error:" in p.stderr or "LeakSanitizer" in p.stderr
-        return p.returncode, p.stdout, p.stderr, bad
+    from concurrent.futures import ThreadPoolExecutor
+    tasks = []
     for path in sorted(glob.glob("examples/*.bmm")):
         inp = path[:-4] + ".in"
         data = read(inp) if os.path.exists(inp) else None
-        rc, out, err, bad = san_run([san, path], data)
-        s.check(not bad, f"sanitizer finding {path}")
+        tasks.append(("example " + path, [san, path], data))
     for path in sorted(glob.glob("tests/conformance/*.bmm") + glob.glob("tests/errors/*.bmm")):
-        rc, out, err, bad = san_run([san, path])
-        s.check(not bad, f"sanitizer finding {path}")
+        tasks.append(("test " + path, [san, path], None))
     for path in sorted(glob.glob("examples/*.bmm"))[:5]:
-        rc, out, err, bad = san_run([san, "fmt", path])
-        s.check(not bad, f"sanitizer finding fmt {path}")
-    rc, out, err, bad = san_run([san, "repl"], "let x = 1\nprintln(str(x))\n:quit\n")
-    s.check(not bad, "sanitizer finding REPL")
+        tasks.append(("fmt " + path, [san, "fmt", path], None))
+    tasks.append(("repl", [san, "repl"], "let x = 1\nprintln(str(x))\n:quit\n"))
+    # differential fuzz under sanitizer
+    random.seed(424242)
+    for i in range(2000):
+        n = random.randint(1, 6)
+        lines = []
+        for j in range(n):
+            op = random.choice(["+", "-", "*", "/", "%"])
+            a = random.choice(["0", "1", "-1", "2147483647", "-2147483647", "7", "-7"])
+            b = random.choice(["1", "2", "3", "-2", "2147483647", "-1"])
+            lines.append(f"println(str(({a}) {op} ({b})))")
+        pth = os.path.join(TMP, f"sanfuzz{i}.bmm")
+        open(pth, "w").write("\n".join(lines) + "\n")
+        tasks.append((f"fuzz {i}", [san, pth], None))
+    alphabet = "abcdefghijklmnopqrstuvwxyz0123456789+-*/%<>=()[]{},\"\\ \n\t;"
+    for i in range(1000):
+        n = random.randint(0, 200)
+        src = "".join(random.choice(alphabet) for _ in range(n))
+        if random.random() < 0.5:
+            src = src[:random.randint(0, len(src))]
+        pth = os.path.join(TMP, f"sanrand{i}.bmm")
+        open(pth, "w").write(src)
+        tasks.append((f"rand {i}", [san, pth], None))
+    # corrupt bmc
+    valid = os.path.join(TMP, "sanvalid.bmc")
+    run([BMM, "build", "examples/01_hola.bmm", "-o", valid])
+    base = open(valid, "rb").read()
+    for i in range(500):
+        data = bytearray(base)
+        if random.random() < 0.5:
+            data[random.randrange(len(data))] ^= random.randrange(1, 256)
+        else:
+            data = data[:random.randrange(0, len(data))]
+        pth = os.path.join(TMP, f"sanbmc{i}.bmc")
+        open(pth, "wb").write(data)
+        tasks.append((f"bmc {i}", [san, "run", pth], None))
+
+    def one(task):
+        name, cmd, data = task
+        try:
+            p = subprocess.run(cmd, input=data, capture_output=True, text=True, timeout=60, cwd=ROOT, env=env)
+            bad = "Sanitizer" in p.stderr or "runtime error:" in p.stderr or "LeakSanitizer" in p.stderr
+            if name.startswith("fuzz") or name.startswith("rand"):
+                src = cmd[1]
+                q = subprocess.run(["python3", PY, src], input=data, capture_output=True, text=True, timeout=60, cwd=ROOT)
+                if (p.returncode, p.stdout, p.stderr) != (q.returncode, q.stdout, q.stderr):
+                    bad = True
+            return name, bad, p.returncode
+        except subprocess.TimeoutExpired:
+            return name, True, -999
+    findings = 0
+    with ThreadPoolExecutor(max_workers=16) as ex:
+        for name, bad, _ in ex.map(one, tasks):
+            if bad:
+                findings += 1
+                s.check(False, "sanitizer finding " + name)
+            else:
+                s.check(True, "sanitizer " + name)
+    print(f"sanitizer programs: {len(tasks)}; findings: {findings}")
     return s.done()
 
 def stage_s13():
@@ -451,10 +557,20 @@ def main():
         results.append((name, ok))
     # manifest minimums
     manifest = {}
+    head_manifest = {}
+    h = subprocess.run(["git", "show", "HEAD:tests/GATE_MANIFEST"], capture_output=True, text=True, cwd=ROOT)
+    if h.returncode == 0:
+        for line in h.stdout.splitlines():
+            parts = line.split()
+            if len(parts) == 2:
+                head_manifest[parts[0]] = int(parts[1])
     for line in open(os.path.join(ROOT, "tests", "GATE_MANIFEST")):
         parts = line.split()
         if len(parts) == 2:
             manifest[parts[0]] = int(parts[1])
+    for stage, need in manifest.items():
+        if stage in head_manifest and need < head_manifest[stage]:
+            failure_messages.append(f"{stage}: manifest minimum decreased")
     for line in stage_lines:
         m = re.match(r"STAGE (S\d+) .*?\((\d+) checks\)", line)
         if m:

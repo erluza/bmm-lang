@@ -27,6 +27,19 @@ void vm_free(BmmVM *vm) {
         for (size_t i = 0; i < vm->nglobals; i++) bmm_free(vm->global_names ? vm->global_names[i] : NULL);
         bmm_free(vm->global_names);
     }
+    if (vm->owns_funcs) {
+        for (size_t i = 0; i < vm->nfuncs; i++) {
+            if (vm->funcs && vm->funcs[i]) {
+                bmm_free(vm->funcs[i]->code);
+                bmm_free(vm->funcs[i]->lineinfo);
+                bmm_free(vm->funcs[i]->colinfo);
+                bmm_free(vm->funcs[i]->name);
+                bmm_free(vm->funcs[i]->consts);
+                bmm_free(vm->funcs[i]);
+            }
+        }
+        bmm_free(vm->funcs);
+    }
     bmm_free(vm->error_msg);
     bmm_free(vm->source);
     bmm_free(vm->source_name);
