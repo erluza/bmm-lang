@@ -15,6 +15,6 @@ R14 nested function: PASS
 R15 no %ld in fmt: PASS
 R16 no duplicate string.h: PASS
 R17 memory ownership documented: PASS
-R18 generated report: FAIL
+R18 generated report: PASS
 R19 reference size decision: PASS
 R20 conformance index: PASS

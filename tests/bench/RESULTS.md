@@ -1,6 +1,6 @@
 # Benchmark Results
 
-- fib30: 1.176s
+- fib30: 1.089s
 - sieve: 0.001s
-- loops: 0.546s
-- strings: 0.022s
+- loops: 0.490s
+- strings: 0.019s

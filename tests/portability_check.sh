@@ -22,7 +22,7 @@ done
 FORBIDDEN='\\bFILE\\b|\\bstdin\\b|\\bstdout\\b|\\bstderr\\b|\\bprintf\\b|\\bfprintf\\b|\\bsnprintf\\b|\\bsprintf\\b|\\bputs\\b|\\bfputs\\b|\\bfputc\\b|\\bfgets\\b|\\bfopen\\b|\\bfread\\b|\\bfwrite\\b|\\bfclose\\b|\\bfflush\\b|\\bgetchar\\b|\\babort\\b|\\bmalloc\\b|\\bcalloc\\b|\\brealloc\\b|\\bfree\\b'
 for f in $(find src -type f \( -name '*.c' -o -name '*.h' \) | grep -v 'src/pal/'); do
     if echo "$f" | grep -q 'src/gc.c'; then continue; fi
-    bad=$(grep -nE "$FORBIDDEN" "$f" | grep -v '"exit"' | grep -v '^[0-9]*:[[:space:]]*//' | grep -v '^[0-9]*:[[:space:]]*\\*' || true)
+    if ! bad=$(grep -nE "$FORBIDDEN" "$f" | grep -v '"exit"' | grep -v '^[0-9]*:[[:space:]]*//' | grep -v '^[0-9]*:[[:space:]]*\\*'); then bad=""; fi
     if [ -n "$bad" ]; then
         echo "FORBIDDEN TOKEN in $f:"
         echo "$bad"

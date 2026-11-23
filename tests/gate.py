@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """B-- release gate. Runs every stage, prints STAGE lines, and fails if any
 check fails. The full output is written to docs/GATE_OUTPUT.txt."""
-import os, sys, subprocess, glob, tempfile, shutil, hashlib, random, time
+import os, sys, subprocess, glob, tempfile, shutil, hashlib, random, time, re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BMM = os.path.join(ROOT, "bmm")
@@ -57,6 +57,17 @@ def stage_s01():
         must_build(s, "clang")
     else:
         print("SKIPPED(clang ausente)")
+    # test-suite lint
+    lint_text = ""
+    for path in sorted(glob.glob("tests/**/*", recursive=True)) + ["tests/gate.sh"]:
+        if path.endswith("tests/gate.py"):
+            continue
+        if os.path.isfile(path) and (path.endswith(".sh") or path.endswith(".py") or path.endswith(".txt") or path.endswith(".md")):
+            lint_text += open(path, errors="ignore").read()
+    s.check("|| true" not in lint_text, "tests contain || true")
+    s.check("set +e" not in lint_text, "tests contain set +e")
+    s.check("2>/dev/null" not in lint_text, "tests contain 2>/dev/null")
+    s.check(lint_text.count("exit 0") <= 2, "tests contain early exit 0")
     return s.done()
 
 def stage_s02():
@@ -335,6 +346,12 @@ def stage_s14():
     print(rc.stdout.strip())
     if rc.returncode != 0:
         print(rc.stderr[-1000:])
+    report = os.path.join(ROOT, "tests", "mutation-report.txt")
+    lines = [l for l in read(report).splitlines() if l.strip()] if os.path.exists(report) else []
+    for line in lines:
+        s.check("DETECTED" in line, "mutation survived: " + line)
+    if not lines:
+        s.check(False, "mutation report missing")
     s.check(rc.returncode == 0, "mutation testing survived")
     return s.done()
 
@@ -344,6 +361,12 @@ def stage_s15():
     print(rc.stdout.strip())
     if rc.returncode != 0:
         print(rc.stderr[-1000:])
+    report = os.path.join(ROOT, "tests", "regression-report.txt")
+    lines = [l for l in read(report).splitlines() if l.strip()] if os.path.exists(report) else []
+    for line in lines:
+        s.check(line.endswith(": PASS"), "regression failed: " + line)
+    if not lines:
+        s.check(False, "regression report missing")
     s.check(rc.returncode == 0, "regression suite failed")
     return s.done()
 
@@ -426,6 +449,18 @@ def main():
     for name, fn in STAGES:
         ok = fn()
         results.append((name, ok))
+    # manifest minimums
+    manifest = {}
+    for line in open(os.path.join(ROOT, "tests", "GATE_MANIFEST")):
+        parts = line.split()
+        if len(parts) == 2:
+            manifest[parts[0]] = int(parts[1])
+    for line in stage_lines:
+        m = re.match(r"STAGE (S\d+) .*?\((\d+) checks\)", line)
+        if m:
+            need = manifest.get(m.group(1), 0)
+            if int(m.group(2)) < need:
+                failure_messages.append(f"{m.group(1)}: {m.group(2)} checks < manifest {need}")
     lines = ["B-- gate output", "=" * 40] + stage_lines + ["", "Failures:"]
     lines += failure_messages if failure_messages else ["none"]
     text = "\n".join(lines) + "\n"
