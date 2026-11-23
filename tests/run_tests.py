@@ -261,7 +261,7 @@ rc = subprocess.run(["cc", "-std=c99", "-D_POSIX_C_SOURCE=200809L", "-g", "-fsan
                      "-fno-sanitize-recover=undefined", "-Isrc", "-Isrc/pal"] +
                     sorted(glob.glob(os.path.join(ROOT, "src", "*.c"))) +
                     [os.path.join(ROOT, "src", "pal", "pal_posix.c")] +
-                    ["-o", san], capture_output=True, text=True)
+                    ["-o", san], capture_output=True, text=True, cwd=ROOT)
 if rc.returncode != 0:
     fail("sanitizer build failed: " + rc.stderr)
 else:
