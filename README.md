@@ -1,73 +1,48 @@
-# B--
+<h1 align="center">B--</h1>
 
-B-- (pronounced "be minus minus") is a small, fully defined programming
-language. It has three types, twelve keywords, and a closed set of built-in
-functions. The reference interpreter is written in strict C99 with no
-dependencies.
+<p align="center">
+  A small, fully defined programming language.<br>
+  Strict C99 bytecode interpreter. Python reference implementation. No dependencies.
+</p>
 
-## Status
+<p align="center">
+  <a href="https://github.com/erluza/bmm-lang/actions"><img alt="CI" src="https://github.com/erluza/bmm-lang/actions/workflows/ci.yml/badge.svg"></a>
+  <img alt="Version" src="https://img.shields.io/badge/version-1.0.0-blue">
+  <img alt="Specification" src="https://img.shields.io/badge/spec-frozen-informational">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
+</p>
 
-Version 1.0.0. The language specification is frozen.
+<p align="center">
+  <a href="docs/LANGUAGE_REFERENCE.md">Reference</a> ·
+  <a href="docs/TUTORIAL.md">Tutorial</a> ·
+  <a href="docs/BUILTINS.md">Built-ins</a> ·
+  <a href="docs/ARCHITECTURE.md">Architecture</a> ·
+  <a href="CHANGELOG.md">Changelog</a> ·
+  <a href="README.es.md">Español</a>
+</p>
 
-## Overview
+---
 
-Types: `int` (32-bit signed, wraparound), `str` (immutable byte sequence),
-`arr` (mutable, zero-indexed, bounds-checked).
+B-- (pronounced "be minus minus") has three types, twelve keywords and a
+closed set of built-in functions. Source is compiled to bytecode for a
+stack-based virtual machine, with a mark-and-sweep garbage collector.
+The language specification is frozen at version 1.0.0.
 
-Keywords: `let fn if else loop break ret use and or not end`.
+## Contents
 
-Execution model: source is compiled to bytecode for a stack-based virtual
-machine. A mark-and-sweep collector manages memory.
+- [Language at a glance](#language-at-a-glance)
+- [Install](#install)
+- [Usage](#usage)
+- [Documentation](#documentation)
+- [Repository layout](#repository-layout)
+- [Portability](#portability)
+- [Testing](#testing)
+- [Contributing](#contributing)
+- [License](#license)
 
-## Requirements
-
-A C99 compiler and `make`. No other dependencies. No administrator
-privileges are required.
-
-## Building and Installation
-
-```
-make
-make test
-make install PREFIX="$HOME/.local"
-```
-
-Alternative without make:
-
-```
-./build.sh
-```
-
-## Quick Start
-
-Hello world:
-
-```
-println("Hello, world")
-```
-
-Run:
+## Language at a glance
 
 ```
-bmm hello.bmm
-```
-
-REPL:
-
-```
-bmm
-```
-
-Compile to bytecode:
-
-```
-bmm build hello.bmm -o hello.bmc
-bmm run hello.bmc
-```
-
-## Language at a Glance
-
-```bmm
 fn fib(n)
   if n < 2
     ret n
@@ -82,61 +57,86 @@ loop i < 10
 end
 ```
 
-Built-ins: `print println input len push pop str int chr ord sub arr exit argv clock`.
+| | |
+|---|---|
+| **Types** | `int` (32-bit signed, wraparound), `str` (immutable byte sequence), `arr` (mutable, zero-indexed, bounds-checked) |
+| **Keywords** | `let` `fn` `if` `else` `loop` `break` `ret` `use` `and` `or` `not` `end` |
+| **Built-ins** | `print` `println` `input` `len` `push` `pop` `str` `int` `chr` `ord` `sub` `arr` `exit` `argv` `clock` |
+| **Execution** | Bytecode, stack-based VM, mark-and-sweep GC |
 
-## Repository Layout
+## Install
+
+Requirements: a C99 compiler and `make`. No other dependencies and no
+administrator privileges.
+
+```sh
+make
+make test
+make install PREFIX="$HOME/.local"
+```
+
+Without `make`:
+
+```sh
+./build.sh
+```
+
+## Usage
+
+```sh
+bmm hello.bmm                      # run a source file
+bmm                                # start the REPL
+bmm build hello.bmm -o hello.bmc   # compile to bytecode
+bmm run hello.bmc                  # run compiled bytecode
+```
+
+`hello.bmm`:
 
 ```
-src/        interpreter sources and PAL
-ref/        Python reference implementation
-docs/       specification and guides
-examples/   fifteen example programs
-stdlib/     standard library written in B--
-tests/      conformance, errors, fuzz, benchmarks
+println("Hello, world")
 ```
 
 ## Documentation
 
-- `docs/MANIFESTO.md`
-- `docs/LANGUAGE_REFERENCE.md`
-- `docs/GRAMMAR.ebnf`
-- `docs/TUTORIAL.md`
-- `docs/BUILTINS.md`
-- `docs/BYTECODE.md`
-- `docs/BMC_FORMAT.md`
-- `docs/EMBEDDING.md`
-- `docs/PORTING.md`
-- `docs/ERRORS.md`
-- `docs/ARCHITECTURE.md`
-- `docs/DECISIONS.md`
+| Topic | Document |
+|---|---|
+| Language | [Manifesto](docs/MANIFESTO.md) · [Reference](docs/LANGUAGE_REFERENCE.md) · [Grammar](docs/GRAMMAR.ebnf) · [Built-ins](docs/BUILTINS.md) · [Errors](docs/ERRORS.md) |
+| Learning | [Tutorial](docs/TUTORIAL.md) · [`examples/`](examples) |
+| Internals | [Architecture](docs/ARCHITECTURE.md) · [Bytecode](docs/BYTECODE.md) · [BMC format](docs/BMC_FORMAT.md) · [Design decisions](docs/DECISIONS.md) |
+| Integration | [Embedding](docs/EMBEDDING.md) · [Porting](docs/PORTING.md) |
+
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| `src/` | Interpreter sources and platform abstraction layer (PAL) |
+| `ref/` | Python reference implementation |
+| `docs/` | Specification and guides |
+| `examples/` | Fifteen example programs |
+| `stdlib/` | Standard library, written in B-- |
+| `tests/` | Conformance, error, fuzz and benchmark tests |
 
 ## Portability
 
 All platform access is isolated in `src/pal/pal.h` and its implementations.
 Porting requires implementing roughly ten functions and adjusting
-`bmm_config.h`.
+`bmm_config.h`. See [PORTING.md](docs/PORTING.md).
 
 ## Testing
 
-```
+```sh
 make test
 ```
 
-Runs conformance, error, fuzz, and benchmark tests. The C and Python
+Runs the conformance, error, fuzz and benchmark suites. The C and Python
 interpreters are compared byte for byte.
 
 ## Contributing
 
 Contributions are welcome. Keep changes minimal and consistent with the
-existing style. Run `make test` before submitting.
+existing style, and run `make test` before submitting. See
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-MIT.
-
----
-
-Resumen en español: B-- es un lenguaje mínimo y totalmente definido, con
-intérprete en C99 e implementación de referencia en Python. Incluye
-documentación, ejemplos, tests y capa de portabilidad. Se compila con
-`make` y se instala con `make install PREFIX="$HOME/.local"`.
+Released under the [MIT License](LICENSE).
