@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use B--, cite this software."
+title: "B--"
+abstract: "B-- is a small, fully defined programming language with a strict C99 bytecode interpreter and a Python reference implementation. The language specification is frozen at 1.0.0."
+version: "17.14"
+date-released: "2026-11-26"
+license: MIT
+repository-code: "https://github.com/erluza/bmm-lang"
+url: "https://github.com/erluza/bmm-lang"
+keywords:
+  - programming language
+  - interpreter
+  - bytecode
+  - virtual machine
+  - C99
+  - Python
+  - language implementation
+authors:
+  - family-names: "erluza"

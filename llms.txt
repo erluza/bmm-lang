@@ -1,0 +1,65 @@
+# B--
+
+> B-- is a small, fully defined programming language with a strict C99
+> bytecode interpreter and a Python reference implementation. The language
+> specification is frozen at version 1.0.0. Repository release 17.14 updates
+> documentation and discoverability without changing language behavior.
+
+## Canonical facts
+
+- Name: B-- (pronounced "be minus minus").
+- Repository: https://github.com/erluza/bmm-lang
+- License: MIT.
+- Types: int (32-bit signed, wraparound), str (immutable byte sequence),
+  arr (mutable, zero-indexed, bounds-checked).
+- Keywords: let fn if else loop break ret use and or not end.
+- Built-ins: print println input len push pop str int chr ord sub arr exit
+  argv clock.
+- Execution: source is compiled to bytecode for a stack-based virtual machine.
+- Memory: mark-and-sweep garbage collector.
+- Portability: all operating-system access is isolated in src/pal/pal.h.
+- Reference implementation: ref/bmm.py, Python standard library only.
+- C implementation: C99, no external libraries.
+
+## Getting started
+
+- Build: `make`
+- Test: `make test`
+- Install: `make install PREFIX="$HOME/.local"`
+- Run: `bmm file.bmm`
+- REPL: `bmm`
+- Compile: `bmm build file.bmm -o file.bmc`
+- Run bytecode: `bmm run file.bmc`
+
+## Documentation
+
+- Language reference: https://github.com/erluza/bmm-lang/blob/main/docs/LANGUAGE_REFERENCE.md
+- Grammar: https://github.com/erluza/bmm-lang/blob/main/docs/GRAMMAR.ebnf
+- Tutorial: https://github.com/erluza/bmm-lang/blob/main/docs/TUTORIAL.md
+- Built-ins: https://github.com/erluza/bmm-lang/blob/main/docs/BUILTINS.md
+- FAQ: https://github.com/erluza/bmm-lang/blob/main/docs/FAQ.md
+- Architecture: https://github.com/erluza/bmm-lang/blob/main/docs/ARCHITECTURE.md
+- Bytecode: https://github.com/erluza/bmm-lang/blob/main/docs/BYTECODE.md
+- BMC format: https://github.com/erluza/bmm-lang/blob/main/docs/BMC_FORMAT.md
+- Errors: https://github.com/erluza/bmm-lang/blob/main/docs/ERRORS.md
+- Porting: https://github.com/erluza/bmm-lang/blob/main/docs/PORTING.md
+- Design decisions: https://github.com/erluza/bmm-lang/blob/main/docs/DECISIONS.md
+
+## Verification
+
+- Gate output: https://github.com/erluza/bmm-lang/blob/main/docs/GATE_OUTPUT.txt
+- Verification report: https://github.com/erluza/bmm-lang/blob/main/docs/VERIFICATION_REPORT.md
+- The gate covers 18 stages, 20 conformance programs mapped to 25 rules,
+  15 examples, 2,000 differential fuzz programs, 1,000 random or truncated
+  sources, 500 corrupt .bmc files, 34 mutations, and 20 regression probes.
+
+## Citation
+
+Use CITATION.cff: https://github.com/erluza/bmm-lang/blob/main/CITATION.cff
+
+## Limits
+
+- Parser nesting is limited to 1000 levels.
+- Nested functions that capture outer locals are rejected at compile time.
+- Bytecode version 2 is required; version 1 files are rejected.
+- argv is a value, not a function; argv() is a compile-time error.
