@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """R01-R20 regression checks. Current tree must pass all. The baseline tag
-(baseline-defects) is also probed and its result is recorded."""
+The pre-hardening tree is kept as a reference in git history."""
 import os, sys, subprocess, glob, hashlib, shutil
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

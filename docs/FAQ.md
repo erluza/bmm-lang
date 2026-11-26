@@ -14,7 +14,7 @@ B-- is pronounced "be minus minus". The name is written with two hyphens.
 
 ## Which version is current?
 
-The language specification is frozen at 1.0.0. Repository release 17.14 is a
+The language specification is frozen at 17.14. Repository release 17.14 is a
 documentation and discoverability release and does not change language
 behavior.
 

@@ -6,9 +6,9 @@ All notable changes to B-- are recorded in this file.
 
 - Documentation and discoverability release.
 - Added FAQ, CITATION.cff, llms.txt, and expanded README metadata.
-- Language specification remains 1.0.0; no language behavior changed.
+- Language specification remains frozen; no language behavior changed.
 
-## 1.0.0 - 2026-11-23
+## Initial release - 2026-11-23
 
 - Initial public release.
 - C99 bytecode interpreter, Python reference implementation, CLI, REPL,

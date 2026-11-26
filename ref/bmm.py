@@ -984,7 +984,7 @@ def main():
         repl()
         return
     if args[0] in ("--version",):
-        print("bmm 1.0.0")
+        print("bmm 17.14")
         return
     if args[0] in ("--help", "-h"):
         print("usage: bmm [file.bmm [args...]] | -e code | repl | ...")

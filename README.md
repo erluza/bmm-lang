@@ -8,7 +8,7 @@
 <p align="center">
   <a href="https://github.com/erluza/bmm-lang/actions"><img alt="CI" src="https://github.com/erluza/bmm-lang/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Release" src="https://img.shields.io/badge/release-17.14-blue">
-  <img alt="Language specification" src="https://img.shields.io/badge/spec-1.0.0%20frozen-informational">
+  <img alt="Language specification" src="https://img.shields.io/badge/spec-17.14%20frozen-informational">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
 </p>
 
@@ -29,7 +29,7 @@ types, twelve keywords, and a closed set of built-in functions. Source is
 compiled to bytecode for a stack-based virtual machine. A mark-and-sweep
 garbage collector manages heap objects.
 
-The language specification is frozen at version 1.0.0. Release 17.14 is a
+The language specification is frozen at version 17.14. Release 17.14 is a
 documentation and discoverability release; it does not change language
 behavior.
 
@@ -88,7 +88,7 @@ end
 | Keywords | `let` `fn` `if` `else` `loop` `break` `ret` `use` `and` `or` `not` `end` |
 | Built-ins | `print` `println` `input` `len` `push` `pop` `str` `int` `chr` `ord` `sub` `arr` `exit` `argv` `clock` |
 | Execution | Bytecode, stack-based VM, mark-and-sweep GC |
-| Specification | 1.0.0, frozen |
+| Specification | 17.14, frozen |
 | License | MIT |
 
 ## Install
@@ -139,7 +139,7 @@ println("Hello, world")
 
 ## Project status
 
-- Language specification: 1.0.0, frozen.
+- Language specification: 17.14, frozen.
 - Repository release: 17.14.
 - CI: GitHub Actions, gcc and clang, strict C99 warnings as errors.
 - Test gate: 18 stages.
@@ -252,6 +252,6 @@ Released under the [MIT License](LICENSE).
 
 Resumen en español: B-- es un lenguaje de programación pequeño y totalmente
 definido, con un intérprete de bytecode en C99 y una implementación de
-referencia en Python. La especificación del lenguaje está congelada en 1.0.0.
+referencia en Python. La especificación del lenguaje está congelada en 17.14.
 La release 17.14 actualiza documentación y metadatos; no cambia el
 comportamiento del lenguaje.

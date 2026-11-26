@@ -8,7 +8,7 @@
 <p align="center">
   <a href="https://github.com/erluza/bmm-lang/actions"><img alt="CI" src="https://github.com/erluza/bmm-lang/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Release" src="https://img.shields.io/badge/release-17.14-blue">
-  <img alt="Especificación del lenguaje" src="https://img.shields.io/badge/spec-1.0.0%20frozen-informational">
+  <img alt="Especificación del lenguaje" src="https://img.shields.io/badge/spec-17.14%20frozen-informational">
   <a href="LICENSE"><img alt="Licencia: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
 </p>
 
@@ -29,7 +29,7 @@ tres tipos, doce palabras reservadas y un conjunto cerrado de funciones
 built-in. El código fuente se compila a bytecode para una máquina virtual de
 pila. Un recolector de basura mark-and-sweep administra los objetos del heap.
 
-La especificación del lenguaje está congelada en la versión 1.0.0. La release
+La especificación del lenguaje está congelada en la versión 17.14. La release
 17.14 es una actualización de documentación y descubribilidad; no cambia el
 comportamiento del lenguaje.
 
@@ -89,7 +89,7 @@ end
 | Palabras reservadas | `let` `fn` `if` `else` `loop` `break` `ret` `use` `and` `or` `not` `end` |
 | Built-ins | `print` `println` `input` `len` `push` `pop` `str` `int` `chr` `ord` `sub` `arr` `exit` `argv` `clock` |
 | Ejecución | Bytecode, VM de pila, GC mark-and-sweep |
-| Especificación | 1.0.0, congelada |
+| Especificación | 17.14, congelada |
 | Licencia | MIT |
 
 ## Instalación
@@ -140,7 +140,7 @@ println("Hello, world")
 
 ## Estado del proyecto
 
-- Especificación del lenguaje: 1.0.0, congelada.
+- Especificación del lenguaje: 17.14, congelada.
 - Release del repositorio: 17.14.
 - CI: GitHub Actions, gcc y clang, warnings estrictos de C99 como errores.
 - Gate de pruebas: 18 etapas.

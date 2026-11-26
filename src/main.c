@@ -220,7 +220,7 @@ int main(int argc, char **argv) {
     }
     if (strcmp(argv[1], "--version") == 0) {
         OutBuf o; out_init(&o);
-        out_puts(&o, "bmm 1.0.0\n");
+        out_puts(&o, "bmm 17.14\n");
         out_flush_stdout(&o);
         return 0;
     }

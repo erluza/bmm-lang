@@ -3,8 +3,8 @@
 ## F0 baseline
 
 - Date: 2026-11-23.
-- Tag `baseline-core` points to the pre-hardening tree.
-- Tag `baseline-defects` points to the initial buggy core used by regression probes.
+- The pre-hardening tree is recorded in git history.
+- Regression probes keep their own fixtures.
 - Known defects: argv in .bmc, .bmc diagnostic locations, nested function calls,
   fmt trivia, REPL persistence, and gate coverage.
 

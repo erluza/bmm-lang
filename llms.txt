@@ -2,7 +2,7 @@
 
 > B-- is a small, fully defined programming language with a strict C99
 > bytecode interpreter and a Python reference implementation. The language
-> specification is frozen at version 1.0.0. Repository release 17.14 updates
+> specification is frozen at version 17.14. Repository release 17.14 updates
 > documentation and discoverability without changing language behavior.
 
 ## Canonical facts
